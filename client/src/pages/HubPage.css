@@ -1,0 +1,140 @@
+.hub {
+    min-height: 100vh;
+    padding: 80px var(--space-md) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2xl);
+}
+
+/* Chateau centerpiece */
+.hub-chateau {
+    text-align: center;
+    padding: var(--space-2xl) var(--space-md);
+}
+
+.hub-chateau-icon {
+    font-size: 5rem;
+    display: block;
+    margin-bottom: var(--space-md);
+    filter: drop-shadow(0 8px 32px rgba(212, 165, 116, 0.3));
+}
+
+.hub-chateau-name {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-cork);
+    letter-spacing: 2px;
+}
+
+.hub-chateau-hint {
+    color: var(--color-text-dim);
+    font-size: 0.9rem;
+    margin-top: var(--space-sm);
+}
+
+/* Zone cards */
+.hub-zones {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+    width: 100%;
+    max-width: 500px;
+}
+
+.hub-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xl) var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    font-family: var(--font-body);
+}
+
+.hub-zone::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--zone-color, var(--color-cork));
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+.hub-zone:hover {
+    border-color: var(--zone-color, var(--color-cork));
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.hub-zone:hover::before {
+    opacity: 1;
+}
+
+.hub-zone-emoji {
+    font-size: 2.5rem;
+    filter: grayscale(0.2);
+    transition: filter var(--transition-normal);
+}
+
+.hub-zone:hover .hub-zone-emoji {
+    filter: grayscale(0) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.hub-zone-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.hub-zone-desc {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* Disabled zone (Academy) */
+.hub-zone-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.hub-zone-disabled:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--color-border);
+}
+
+.hub-zone-badge {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+    .hub-chateau-icon {
+        font-size: 3.5rem;
+    }
+
+    .hub-chateau-name {
+        font-size: 1.8rem;
+    }
+
+    .hub-zones {
+        grid-template-columns: 1fr;
+        max-width: 300px;
+    }
+}

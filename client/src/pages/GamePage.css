@@ -1,0 +1,199 @@
+/* ── Shared game page styles ── */
+
+.game-message {
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-lg);
+    font-size: 0.85rem;
+    color: var(--color-cork-bright);
+}
+
+/* ── Shop item cards ── */
+
+.item-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.item-emoji {
+    font-size: 2rem;
+}
+
+.item-type-badge {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    background: var(--color-surface-light);
+    border-radius: 4px;
+    color: var(--color-text-dim);
+}
+
+.item-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.item-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
+
+.item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+.item-price {
+    font-weight: 600;
+    color: var(--color-gold);
+    font-size: 0.95rem;
+}
+
+/* ── Vineyard plots ── */
+
+.vineyard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+@media (max-width: 600px) {
+    .vineyard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.plot-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    min-height: 160px;
+}
+
+.plot-active {
+    border-color: var(--color-olive);
+}
+
+.plot-emoji {
+    font-size: 2.5rem;
+}
+
+.plot-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.plot-saplings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.plot-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+}
+
+/* ── Winery sections ── */
+
+.winery-section {
+    margin-bottom: var(--space-2xl);
+}
+
+.section-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--color-cork);
+    margin-bottom: var(--space-sm);
+}
+
+.section-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-bottom: var(--space-md);
+}
+
+.grape-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.batch-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.batch-status {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-warning);
+}
+
+.batch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+}
+
+/* ── Academy stub ── */
+
+.academy-page {
+    display: flex;
+    flex-direction: column;
+}
+
+.academy-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-lg);
+    padding: var(--space-3xl);
+}
+
+.academy-icon {
+    font-size: 5rem;
+    opacity: 0.6;
+}
+
+.academy-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--color-cork);
+}
+
+.academy-desc {
+    max-width: 400px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    font-size: 0.9rem;
+}
