@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 /** Countdown hook — returns remaining ms from a target timestamp. Ticks every second. */
 export function useCountdown(targetMs: number | null | undefined): number {
