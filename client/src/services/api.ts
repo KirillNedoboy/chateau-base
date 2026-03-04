@@ -62,21 +62,29 @@ export const api = {
     },
 
     winery: {
-        list: () => request<{ batches: import('../types').WineryBatch[]; wines: import('../types').Wine[] }>('/winery'),
-        ferment: (grapeType: string) =>
-            request<{ success: boolean }>('/winery/ferment', {
-                method: 'POST', body: JSON.stringify({ grapeType }),
+        list: () => request<{ grapeInventory: import('../types').GrapeInventory[]; tanks: import('../types').Tank[]; barrels: import('../types').Barrel[]; wines: import('../types').Wine[] }>('/winery'),
+        tankAdd: (grapeInventoryId: number) =>
+            request<{ success: boolean; message: string }>('/winery/tank/add', {
+                method: 'POST', body: JSON.stringify({ grapeInventoryId }),
             }),
-        age: (batchId: number, barrelItemId: number) =>
-            request<{ success: boolean }>('/winery/age', {
-                method: 'POST', body: JSON.stringify({ batchId, barrelItemId }),
+        tankStart: () =>
+            request<{ success: boolean; message: string }>('/winery/tank/start', {
+                method: 'POST',
             }),
-        collect: (batchId: number) =>
-            request<{ success: boolean; wine: { name: string; quality: number } }>('/winery/collect', {
-                method: 'POST', body: JSON.stringify({ batchId }),
+        tankClean: () =>
+            request<{ success: boolean; message: string }>('/winery/tank/clean', {
+                method: 'POST',
+            }),
+        tankTransfer: (barrelItemId: number) =>
+            request<{ success: boolean; message: string }>('/winery/tank/transfer', {
+                method: 'POST', body: JSON.stringify({ barrelItemId }),
+            }),
+        barrelCollect: (barrelId: number) =>
+            request<{ success: boolean; wine: { name: string; quality: number } }>('/winery/barrel/collect', {
+                method: 'POST', body: JSON.stringify({ barrelId }),
             }),
         sell: (wineId: number) =>
-            request<{ success: boolean; earned: number }>('/winery/sell', {
+            request<{ success: boolean; earned: number; message: string }>('/winery/sell', {
                 method: 'POST', body: JSON.stringify({ wineId }),
             }),
     },

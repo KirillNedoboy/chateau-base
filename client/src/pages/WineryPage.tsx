@@ -1,84 +1,51 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HUD from '../components/HUD';
 import { api } from '../services/api';
 import { usePlayerStore } from '../store/playerStore';
+import { useWineryStore } from '../store/useWineryStore';
 import { formatTime } from '../hooks/useTimers';
-import type { WineryBatch, Wine } from '../types';
 import './GamePage.css';
 
 export default function WineryPage() {
     const navigate = useNavigate();
-    const { refreshPlayer, refreshInventory, inventory } = usePlayerStore();
-    const [batches, setBatches] = useState<WineryBatch[]>([]);
-    const [wines, setWines] = useState<Wine[]>([]);
+    const { refreshPlayer, refreshInventory, inventory: playerInventory } = usePlayerStore();
+    const { grapeInventory, tanks, barrels, wines, fetchWinery, error } = useWineryStore();
     const [message, setMessage] = useState('');
-    const [fermenting, setFermenting] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
-    const barrels = inventory.filter((i) => i.type === 'barrel');
-
-    const loadWinery = useCallback(async () => {
-        const data = await api.winery.list();
-        setBatches(data.batches);
-        setWines(data.wines);
-    }, []);
+    const emptyBarrels = playerInventory.filter((i) => i.type === 'barrel');
 
     useEffect(() => {
-        loadWinery();
+        fetchWinery();
         refreshInventory();
-        const id = setInterval(loadWinery, 3000);
+        const id = setInterval(fetchWinery, 3000);
         return () => clearInterval(id);
-    }, [loadWinery, refreshInventory]);
+    }, [fetchWinery, refreshInventory]);
 
-    const handleFerment = useCallback(async (grapeType: string) => {
-        setFermenting(true);
+    const handleAction = async (action: () => Promise<any>, successMsg: string) => {
+        setActionLoading(true);
         setMessage('');
         try {
-            await api.winery.ferment(grapeType);
-            setMessage(`🧪 Fermentation started for ${grapeType}!`);
-            await loadWinery();
+            const result = await action();
+            setMessage(result?.message || successMsg);
+            await Promise.all([fetchWinery(), refreshInventory(), refreshPlayer()]);
         } catch (err: any) {
             setMessage(err.message);
         } finally {
-            setFermenting(false);
+            setActionLoading(false);
         }
-    }, [loadWinery]);
+    };
 
-    const handleAge = useCallback(async (batchId: number, barrelItemId: number) => {
-        setMessage('');
-        try {
-            await api.winery.age(batchId, barrelItemId);
-            setMessage('🛢️ Wine is now aging in oak!');
-            await Promise.all([loadWinery(), refreshInventory()]);
-        } catch (err: any) {
-            setMessage(err.message);
-        }
-    }, [loadWinery, refreshInventory]);
+    const mainTank = tanks[0]; // Assuming 1 tank for MVP
 
-    const handleCollect = useCallback(async (batchId: number) => {
-        setMessage('');
-        try {
-            const { wine } = await api.winery.collect(batchId);
-            setMessage(`🍷 Collected: ${wine.name} (Quality: ${wine.quality.toFixed(1)}x)`);
-            await loadWinery();
-        } catch (err: any) {
-            setMessage(err.message);
-        }
-    }, [loadWinery]);
-
-    const handleSell = useCallback(async (wineId: number) => {
-        setMessage('');
-        try {
-            const { earned } = await api.winery.sell(wineId);
-            setMessage(`💰 Sold for ${earned} $CORK!`);
-            await Promise.all([loadWinery(), refreshPlayer()]);
-        } catch (err: any) {
-            setMessage(err.message);
-        }
-    }, [loadWinery, refreshPlayer]);
-
-    // Available grape types from recent harvests (simplified: offer common 3)
-    const grapeOptions = ['Cabernet Sauvignon', 'Chardonnay', 'Pinot Noir'];
+    // Calculate pulse class based on time remaining until spoiled
+    const getPulseClass = (spoilsRemainingMs: number | null | undefined) => {
+        if (!spoilsRemainingMs) return '';
+        if (spoilsRemainingMs > 60000) return 'pulse-green'; // > 1 min safe
+        if (spoilsRemainingMs > 15000) return 'pulse-yellow'; // > 15 sec warning
+        return 'pulse-red'; // danger
+    };
 
     return (
         <>
@@ -86,62 +53,134 @@ export default function WineryPage() {
             <div className="page">
                 <div className="page-header">
                     <button className="back-btn" onClick={() => navigate('/hub')}>←</button>
-                    <h1>🛢️ Winery</h1>
+                    <h1>🛢️ Winery & Cellar</h1>
                 </div>
 
-                {message && <div className="game-message fade-in">{message}</div>}
+                {(message || error) && <div className="game-message fade-in" style={{ backgroundColor: error ? '#ffcccc' : undefined, color: error ? 'red' : undefined }}>{error || message}</div>}
 
-                {/* Start Fermentation */}
-                <section className="winery-section">
-                    <h2 className="section-title">🧪 Start Fermentation</h2>
-                    <p className="section-hint">Choose grape type from your harvest</p>
-                    <div className="grape-options">
-                        {grapeOptions.map((grape) => (
-                            <button key={grape} className="btn btn-small" onClick={() => handleFerment(grape)} disabled={fermenting}>
-                                {grape}
-                            </button>
-                        ))}
-                    </div>
-                </section>
-
-                {/* Active Batches */}
-                {batches.length > 0 && (
+                {/* Grape Inventory */}
+                {grapeInventory.length > 0 && (
                     <section className="winery-section">
-                        <h2 className="section-title">⏳ Active Batches</h2>
+                        <h2 className="section-title">🍇 Grape Inventory</h2>
                         <div className="grid grid-2">
-                            {batches.map((batch) => (
-                                <div key={batch.id} className="card">
-                                    <div className="batch-header">
-                                        <span>{batch.status === 'fermenting' ? '🧪' : '🛢️'}</span>
-                                        <span className="batch-status">{batch.status}</span>
+                            {grapeInventory.map(grape => (
+                                <div key={grape.id} className="card">
+                                    <h3 className="item-name">{grape.grapeType} {grape.quality > 1 && '⭐'}</h3>
+                                    <div style={{ backgroundColor: '#2a2a2a', height: '10px', borderRadius: '5px', overflow: 'hidden', margin: '10px 0' }}>
+                                        <div style={{ width: `${(grape.quantity % 1) * 100}%`, backgroundColor: '#8b5cf6', height: '100%' }} />
                                     </div>
-                                    <h3 className="item-name">{batch.grapeType}</h3>
-                                    {batch.barrelType && <p className="item-desc">In: {batch.barrelType}</p>}
-                                    <p className="item-desc">Quality: {batch.quality.toFixed(1)}x</p>
+                                    <p className="item-desc">Total: {grape.quantity.toFixed(2)} units ({(grape.quantity % 1) * 100}% towards next slot)</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
-                                    {!batch.isReady && (
-                                        <div className="timer-badge">⏱ {formatTime(batch.timeRemainingMs ?? 0)}</div>
-                                    )}
+                {/* Fermentation Tank */}
+                {mainTank && (
+                    <section className="winery-section">
+                        <h2 className="section-title">🧪 Fermentation Tank</h2>
+                        <div className={`card ${mainTank.status === 'spoiled' ? 'card-danger' : ''} ${mainTank.isReady ? getPulseClass(mainTank.spoilsRemainingMs) : ''}`}>
+                            <div className="batch-header">
+                                <span>{mainTank.status === 'fermenting' ? '🧪' : mainTank.status === 'spoiled' ? '💀' : '🧊'}</span>
+                                <span className={`batch-status ${mainTank.status === 'spoiled' ? 'text-red' : ''}`}>Status: {mainTank.status.toUpperCase()}</span>
+                            </div>
 
-                                    <div className="batch-actions">
-                                        {batch.isReady && batch.status === 'fermenting' && (
-                                            <>
-                                                {barrels.length > 0 && barrels.map((b) => (
-                                                    <button key={b.itemId} className="btn btn-small" onClick={() => handleAge(batch.id, b.itemId)}>
-                                                        Age in {b.name} ({b.quantity})
-                                                    </button>
-                                                ))}
-                                                <button className="btn btn-small btn-success" onClick={() => handleCollect(batch.id)}>
-                                                    Collect (Basic)
-                                                </button>
-                                            </>
-                                        )}
-                                        {batch.isReady && batch.status === 'aging' && (
-                                            <button className="btn btn-small btn-success" onClick={() => handleCollect(batch.id)}>
-                                                🍷 Collect Premium
+                            <div style={{ display: 'flex', gap: '10px', margin: '15px 0' }}>
+                                {[0, 1, 2].map((i) => {
+                                    const slot = mainTank.slots[i];
+                                    return (
+                                        <div key={i} style={{ flex: 1, padding: '10px', textAlign: 'center', border: '1px solid #444', borderRadius: '4px', backgroundColor: slot ? '#2d1b2e' : '#1a1a1a' }}>
+                                            {slot ? (
+                                                <p style={{ margin: 0, fontSize: '0.8rem' }}>{slot.grapeType} {slot.quality > 1 ? '⭐' : ''}</p>
+                                            ) : (
+                                                <p style={{ margin: 0, color: '#666', fontSize: '0.8rem' }}>Empty Slot</p>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {mainTank.status === 'empty' && (
+                                <div className="tank-actions">
+                                    <h4 style={{ marginTop: '10px' }}>Add Grapes (Requires 1.0 unit):</h4>
+                                    <div className="grape-options" style={{ marginBottom: '10px' }}>
+                                        {grapeInventory.filter(g => g.quantity >= 1).map((grape) => (
+                                            <button key={grape.id} className="btn btn-small" onClick={() => handleAction(() => api.winery.tankAdd(grape.id), '')} disabled={actionLoading || !mainTank.slots.includes(null)}>
+                                                + Fill 1 Slot ({grape.grapeType} {grape.quality > 1 ? '⭐' : ''})
                                             </button>
+                                        ))}
+                                        {grapeInventory.filter(g => g.quantity >= 1).length === 0 && (
+                                            <p className="item-desc" style={{ fontStyle: 'italic', color: '#888' }}>Not enough full units to fill a slot. Harvest more!</p>
                                         )}
                                     </div>
+                                    <button
+                                        className={`btn ${!mainTank.slots.includes(null) ? 'btn-success' : ''}`}
+                                        onClick={() => handleAction(() => api.winery.tankStart(), '')}
+                                        disabled={actionLoading || mainTank.slots.every(s => s === null)}
+                                        style={{ width: '100%' }}
+                                    >
+                                        Start Fermentation
+                                    </button>
+                                </div>
+                            )}
+
+                            {mainTank.status === 'fermenting' && !mainTank.isReady && (
+                                <div className="timer-badge">🧪 Fermenting... ⏱ {formatTime(mainTank.timeRemainingMs ?? 0)}</div>
+                            )}
+
+                            {mainTank.status === 'ready' && (
+                                <div className="tank-actions" style={{ marginTop: '10px' }}>
+
+                                    <div className="timer-badge" style={{ backgroundColor: 'transparent', border: '1px solid currentColor', marginBottom: '10px' }}>
+                                        ⚠️ Oxidation in ⏱ {formatTime(mainTank.spoilsRemainingMs ?? 0)}
+                                    </div>
+
+                                    <h4>Transfer to Barrels ({mainTank.slots.filter(s => s !== null).length} needed):</h4>
+                                    {emptyBarrels.length > 0 ? emptyBarrels.map((b) => (
+                                        <button key={b.itemId} className="btn btn-small" onClick={() => handleAction(() => api.winery.tankTransfer(b.itemId), '')} disabled={actionLoading} style={{ marginRight: '5px', marginBottom: '5px' }}>
+                                            Transfer {mainTank.slots.filter(s => s !== null).length} part(s) to {b.name} ({b.quantity} available)
+                                        </button>
+                                    )) : (
+                                        <p style={{ color: 'red' }}>Not enough barrels! Buy them in the shop.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {mainTank.status === 'spoiled' && (
+                                <div className="tank-actions" style={{ marginTop: '10px' }}>
+                                    <p style={{ color: '#ff4c4c', fontWeight: 'bold' }}>This batch is completely ruined and turned into vinegar.</p>
+                                    <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => handleAction(() => api.winery.tankClean(), '')} disabled={actionLoading}>
+                                        🗑️ Discard & Clean Tank
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                {/* Aging Barrels */}
+                {barrels.length > 0 && (
+                    <section className="winery-section">
+                        <h2 className="section-title">⏳ Aging Barrels</h2>
+                        <div className="grid grid-2">
+                            {barrels.map((barrel) => (
+                                <div key={barrel.id} className="card">
+                                    <div className="batch-header">
+                                        <span>🛢️</span>
+                                        <span className="batch-status">{barrel.status}</span>
+                                    </div>
+                                    <h3 className="item-name">{barrel.wineBase}</h3>
+                                    <p className="item-desc">In: {barrel.barrelType}</p>
+                                    <p className="item-desc">Projected Quality: {barrel.quality.toFixed(1)}x</p>
+
+                                    {!barrel.isReady ? (
+                                        <div className="timer-badge">⏱ {formatTime(barrel.timeRemainingMs ?? 0)}</div>
+                                    ) : (
+                                        <button className="btn btn-small btn-success" onClick={() => handleAction(() => api.winery.barrelCollect(barrel.id), 'Wine added to cellar!')} disabled={actionLoading} style={{ marginTop: '10px' }}>
+                                            🍷 Collect Premium Wine
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -158,7 +197,7 @@ export default function WineryPage() {
                                     <h3 className="item-name">{wine.name}</h3>
                                     <p className="item-desc">Quality: ⭐ {wine.quality.toFixed(1)}x</p>
                                     <p className="item-desc">Est. value: 🪙 {Math.round(40 * wine.quality)}</p>
-                                    <button className="btn btn-small btn-primary" onClick={() => handleSell(wine.id)}>
+                                    <button className="btn btn-small btn-primary" onClick={() => handleAction(() => api.winery.sell(wine.id), '')} disabled={actionLoading}>
                                         💰 Sell
                                     </button>
                                 </div>

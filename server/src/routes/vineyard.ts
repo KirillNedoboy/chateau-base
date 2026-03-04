@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { vineyardPlots, inventory, shopItems } from '../db/schema.js';
+import { vineyardPlots, inventory, shopItems, grapeInventory } from '../db/schema.js';
 
 export async function vineyardRoutes(app: FastifyInstance) {
     app.addHook('onRequest', (app as any).authenticate);
@@ -74,7 +74,7 @@ export async function vineyardRoutes(app: FastifyInstance) {
         };
     });
 
-    /** Harvest a ready plot — returns grapes to a virtual "harvest" state */
+    /** Harvest a ready plot — returns grapes to a virtual "inventory" state */
     app.post('/harvest', async (request, reply) => {
         const { id: playerId } = request.user as { id: number };
         const { plotId } = request.body as { plotId: number };
@@ -91,18 +91,51 @@ export async function vineyardRoutes(app: FastifyInstance) {
             return reply.status(400).send({ error: 'Grapes not ready yet', timeRemainingMs: plot.harvestReadyAt.getTime() - now.getTime() });
         }
 
-        // Reset plot to empty
+        let yieldAmount = 1.0;
+        let quality = 1.0;
+
+        if (plot.harvestCount >= 3 && plot.harvestCount < 6) {
+            yieldAmount = 0.5;
+        } else if (plot.harvestCount >= 6) {
+            yieldAmount = 0.25;
+            quality = 2.0; // Grand Cru
+        }
+
+        // Add to grape_inventory
+        const [existingGrape] = await db.select().from(grapeInventory)
+            .where(and(
+                eq(grapeInventory.playerId, playerId),
+                eq(grapeInventory.grapeType, plot.grapeType!),
+                eq(grapeInventory.quality, quality)
+            ))
+            .limit(1);
+
+        if (existingGrape) {
+            await db.update(grapeInventory)
+                .set({ quantity: sql`${grapeInventory.quantity} + ${yieldAmount}` })
+                .where(eq(grapeInventory.id, existingGrape.id));
+        } else {
+            await db.insert(grapeInventory).values({
+                playerId,
+                grapeType: plot.grapeType!,
+                quality,
+                quantity: yieldAmount,
+            });
+        }
+
+        // Reset plot to empty and increment harvest count
         await db.update(vineyardPlots).set({
             status: 'empty',
             grapeType: null,
             plantedAt: null,
             harvestReadyAt: null,
+            harvestCount: plot.harvestCount + 1,
         }).where(eq(vineyardPlots.id, plotId));
 
         return {
             success: true,
-            harvest: { grapeType: plot.grapeType, quantity: 1 },
-            message: `Harvested ${plot.grapeType}! Take it to the Winery.`,
+            harvest: { grapeType: plot.grapeType, yield: yieldAmount, quality },
+            message: `Harvested ${yieldAmount}x ${plot.grapeType}!`,
         };
     });
 }

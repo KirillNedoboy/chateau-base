@@ -58,6 +58,12 @@ export default function VineyardPage() {
         return { emoji: '🌿', label: `${plot.grapeType} — ${formatTime(remaining)}` };
     };
 
+    const getYieldInfo = (harvestCount: number) => {
+        if (harvestCount < 3) return { yield: '1.0x', quality: 'Standard' };
+        if (harvestCount < 6) return { yield: '0.5x', quality: 'Standard' };
+        return { yield: '0.25x', quality: 'Grand Cru ⭐' };
+    };
+
     return (
         <>
             <HUD />
@@ -76,6 +82,11 @@ export default function VineyardPage() {
                             <div key={plot.id} className={`plot-card card ${plot.status !== 'empty' ? 'plot-active' : ''}`}>
                                 <span className="plot-emoji">{visual.emoji}</span>
                                 <span className="plot-label">{visual.label}</span>
+                                {plot.status !== 'empty' && (
+                                    <div className="plot-hint" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                        Harvests: {plot.harvestCount} | Yield: {getYieldInfo(plot.harvestCount ?? 0).yield} | {getYieldInfo(plot.harvestCount ?? 0).quality}
+                                    </div>
+                                )}
 
                                 {/* Growing progress bar */}
                                 {plot.status === 'growing' && !plot.isReady && plot.timeRemainingMs != null && plot.plantedAt && plot.harvestReadyAt && (
