@@ -87,6 +87,10 @@ importers:
         version: 4.1.7(@types/node@25.9.1)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(tsx@4.22.3))
 
   packages/game-engine:
+    dependencies:
+      '@chateau/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: 25.9.1

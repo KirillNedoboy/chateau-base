@@ -12,11 +12,13 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 
 - Plan 001 repo bootstrap implemented.
 - Plan 002 shared domain types implemented.
+- Plan 003 default game config implemented.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
 - API app is a minimal Fastify TypeScript shell with `/health`.
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
-- Game-engine and db packages are minimal TypeScript packages.
+- Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
+- DB package is a minimal TypeScript package.
 - Game-engine has one bootstrap Vitest test and no gameplay rules.
 - DB package is a placeholder only; no Prisma schema has been added.
 - Product specification exists in `PRODUCT_SPEC.md`.
@@ -39,6 +41,8 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - `pnpm typecheck` passed.
 - `pnpm test` passed.
 - `pnpm build` passed.
+- Plan 003 RED check: `pnpm --filter @chateau/game-engine test` failed on undefined `DEFAULT_GAME_CONFIG` before the config export was implemented.
+- `pnpm --filter @chateau/game-engine test` passed after adding `DEFAULT_GAME_CONFIG`.
 - `pnpm lint` passed during Plan 001 and remains available.
 
 ### Scope notes
@@ -51,7 +55,8 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - Frontend UI was not changed.
 - Game-engine formulas were not implemented.
 - Shared domain files contain type contracts only; no runtime functions/constants were added.
+- `DEFAULT_GAME_CONFIG` centralizes MVP economy/config constants; no calculation formulas were added.
 
 ### Next safe step
 
-Implement Plan 003 only after reading its scope and confirming it does not cross MVP boundaries.
+Implement Plan 004 only after reading its scope and confirming it does not cross MVP boundaries.
