@@ -47,6 +47,9 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - `pnpm --filter @chateau/game-engine test` passed after adding `DEFAULT_GAME_CONFIG`.
 - Plan 004 RED check: `pnpm --filter @chateau/game-engine test` failed on missing core wine/vine function exports before implementation.
 - `pnpm --filter @chateau/game-engine test` passed with 3 test files and 11 tests after implementing core calculations.
+- Plan 004 review fix RED check: `pnpm --filter @chateau/game-engine test` failed while `calculateWineBatch` still returned fake future-system placeholder fields.
+- Plan 004 review fix changed `calculateWineBatch` to return `CoreWineBatchCalculationResult` only.
+- `pnpm --filter @chateau/game-engine test` passed after removing fake placeholder fields from `calculateWineBatch`.
 - Plan 004 source scan found no `Date.now` or `Math.random` usage in game-engine source/tests for core wine engine.
 - `pnpm lint` passed during Plan 001 and remains available.
 
@@ -62,6 +65,7 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - Shared domain files contain type contracts only; no runtime functions/constants were added.
 - `DEFAULT_GAME_CONFIG` centralizes MVP economy/config constants; no calculation formulas were added.
 - Randomness is caller-supplied through `randomFactor`; calculations do not generate random values.
+- `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
 - Wine DNA, labels, verdicts, sale price, moments, API routes, Prisma schema, frontend UI, wallet/Base code, and persistence were not implemented.
 
 ### Next safe step

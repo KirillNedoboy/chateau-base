@@ -6,5 +6,5 @@ export type { CalculateRawQualityScoreInput } from "./calculateQualityScore.js";
 export { calculateWineBatch } from "./calculateWineBatch.js";
 export type {
   CalculateWineBatchInput,
-  CalculatedWineBatch
+  CoreWineBatchCalculationResult
 } from "./calculateWineBatch.js";

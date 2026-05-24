@@ -114,38 +114,46 @@ describe("core wine calculations", () => {
     ).toBe("legendary");
   });
 
-  it("calculates a domain-ready wine batch without persistence or random generation", () => {
+  it("calculates a core-only wine batch result without future-system placeholders", () => {
     const batch = calculateWineBatch(
       {
-        id: "batch_1",
-        userId: "user_1",
-        seasonId: "season_0",
-        seasonKey: "genesis_harvest",
         chateauLevel: 3,
         harvestCount: 1,
         productionVessel: "new_oak_barrel",
         agingPlan: "new_to_old_oak_aging",
         closureType: "cork",
-        randomFactor: -9,
-        createdAt: "2026-05-25T00:00:00.000Z"
+        randomFactor: -9
       },
       DEFAULT_GAME_CONFIG
     );
 
+    expect(batch).toEqual({
+      rawQualityScore: 91,
+      rawQualityLevel: "legendary",
+      finalQualityLevel: "legendary",
+      capApplied: false,
+      capCause: null,
+      bottleCount: 3,
+      grapeAmount: 7,
+      vineState: "low_yield",
+      productionVessel: "new_oak_barrel",
+      agingPlan: "new_to_old_oak_aging",
+      closureType: "cork",
+      gameConfigVersion: DEFAULT_GAME_CONFIG.version
+    });
     expect(batch.rawQualityScore).toBe(91);
     expect(batch.rawQualityLevel).toBe("legendary");
     expect(batch.finalQualityLevel).toBe("legendary");
-    expect(batch.qualityLevel).toBe("legendary");
     expect(batch.capApplied).toBe(false);
     expect(batch.capCause).toBeNull();
     expect(batch.grapeAmount).toBe(7);
     expect(batch.bottleCount).toBe(3);
-    expect(batch.recipe).toEqual({
-      productionVessel: "new_oak_barrel",
-      agingPlan: "new_to_old_oak_aging",
-      closureType: "cork",
-      vineState: "low_yield",
-      grapeAmount: 7
-    });
+    expect("profile" in batch).toBe(false);
+    expect("styleTags" in batch).toBe(false);
+    expect("label" in batch).toBe(false);
+    expect("verdict" in batch).toBe(false);
+    expect("salePrice" in batch).toBe(false);
+    expect("moments" in batch).toBe(false);
+    expect("nftReadyMetadata" in batch).toBe(false);
   });
 });
