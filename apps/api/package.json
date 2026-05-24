@@ -1,0 +1,24 @@
+{
+  "name": "@chateau/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --outDir dist --noEmit false",
+    "dev": "tsx watch src/server.ts",
+    "lint": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@chateau/shared": "workspace:*",
+    "fastify": "5.8.5",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.1",
+    "tsx": "4.22.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.7"
+  }
+}

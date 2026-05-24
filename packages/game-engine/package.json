@@ -1,0 +1,21 @@
+{
+  "name": "@chateau/game-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --outDir dist --noEmit false",
+    "dev": "tsc --watch --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.7"
+  }
+}
