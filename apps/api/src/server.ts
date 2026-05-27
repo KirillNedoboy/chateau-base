@@ -1,9 +1,31 @@
 import Fastify from "fastify";
+import type { FastifyLoggerOptions, FastifyServerOptions } from "fastify";
+import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
+import { registerGameStateRoutes } from "./modules/game-state/routes.js";
+import { registerSessionRoutes } from "./modules/session/routes.js";
+import { registerPrisma, type ApiPrismaClient } from "./plugins/prisma.js";
+import { registerZodValidation } from "./plugins/zod.js";
 
-export function buildServer() {
+export type BuildServerOptions = {
+  logger?: FastifyLoggerOptions | boolean;
+  prisma?: ApiPrismaClient;
+};
+
+export function buildServer(options: BuildServerOptions = {}) {
+  const fastifyOptions: FastifyServerOptions = {
+    logger: options.logger ?? true
+  };
   const server = Fastify({
-    logger: true
+    ...fastifyOptions
   });
+
+  registerPrisma(server, {
+    prisma: options.prisma
+  });
+  registerZodValidation(server);
+  server.register(registerSessionRoutes);
+  server.register(registerGameStateRoutes);
+  server.register(registerAnalyticsRoutes);
 
   server.get("/health", async () => ({
     ok: true,

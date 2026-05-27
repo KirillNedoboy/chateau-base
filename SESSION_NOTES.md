@@ -17,10 +17,15 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 005 moment engine implemented.
 - Plan 006 onchain cellar contract implemented.
 - Plan 007 Prisma schema implemented.
+- Plan 008 API session/idempotency foundation implemented.
 - Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
 - API app is a minimal Fastify TypeScript shell with `/health`.
+- API app now includes Fastify foundation with Prisma wiring, zod request validation helper, idempotency helper, and initial endpoints:
+  - `POST /api/session/start`
+  - `GET /api/game/state`
+  - `POST /api/analytics/event`
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
@@ -29,7 +34,6 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - DB package is a minimal TypeScript package.
 - DB package now includes Prisma schema, Prisma client export, and Genesis Harvest seed.
 - Game-engine has one bootstrap Vitest test and no gameplay rules.
-- DB package is a placeholder only; no Prisma schema has been added.
 - Product specification exists in `PRODUCT_SPEC.md`.
 - MVP boundaries exist in `MVP_SCOPE.md`.
 - Architecture rules exist in `ARCHITECTURE.md`.
@@ -76,6 +80,21 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 008 checks passed:
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 008 review-fix checks passed:
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 008 medium-fix checks passed:
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -101,7 +120,20 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Plan 007 implemented persistence models only (including `OnchainEvent` and preserve-on-Base fields on `WineBatch`); no API routes, no frontend, no wallet UX, and no contract logic changes.
 - Plan 007 includes composite idempotency unique constraint on `GameActionLog(userId, actionType, idempotencyKey)`.
 - Plan 007 adds indexes for `walletAddress`, `batchHash`, `preserveTxHash`, share deeplinks, and challenge attribution.
+- Plan 008 implemented API foundation only (session start, game state read, analytics event write, idempotency utility) and did not add shop/vine/winery/wallet/preserve API behavior.
+- Plan 008 routes are backend-authoritative and keep preserve-on-Base as state exposure only (no preserve transactions or onchain mutation APIs).
+- Plan 008 review fixes:
+  - `POST /api/session/start` now uses deterministic identity key (`telegramUserId` or `anon:${anonymousSessionId}`), `upsert`, and unique-conflict recovery.
+  - Plot initialization now uses `createMany(..., skipDuplicates: true)` to avoid race-related duplicate errors.
+  - Cellar initialization remains `upsert`-based and race-safe for repeated starts.
+  - `withIdempotency` now stores an explicit pending marker and deletes pending `GameActionLog` row on handler failure to allow retry.
+  - API tests now cover invalid zod request bodies, no duplicate plots/cellar on repeated start, retry after failed idempotent handler, and explicit note about stub Prisma limitations.
+- Plan 008 medium-fix follow-up:
+  - `telegramUserId` values with reserved `anon:` prefix are now rejected to prevent namespace collisions with anonymous identities.
+  - `anonymousSessionId` is validated to reject control characters before building `anon:${anonymousSessionId}` identity keys.
+  - `withIdempotency` now stores successful responses in a wrapped shape (`__chateauIdempotencyResult + data`) and unwraps on read; pending state no longer collides with real payload content.
+  - Added tests for reserved-prefix rejection, anonymous start success, telegram/anonymous key separation for same numeric values, and payload collision safety for `{ "__idempotencyStatus": "pending" }`.
 
 ### Next safe step
 
-Implement Plan 008 only after reading its scope and keeping preserve-on-Base boundaries unchanged.
+Implement Plan 009 only after reading its scope and keeping preserve-on-Base boundaries unchanged.
