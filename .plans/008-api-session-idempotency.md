@@ -1,4 +1,4 @@
-# Plan 007 — API Session and Idempotency
+# Plan 008 — API Session and Idempotency
 
 ## Goal
 Create Fastify API foundation with session start, game state, analytics, and idempotency helper.

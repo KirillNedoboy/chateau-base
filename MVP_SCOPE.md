@@ -2,7 +2,7 @@
 
 ## MVP objective
 
-Deliver a playable vertical slice where a player can open the app, create the first wine within 3 minutes, receive a result, share/sell it, and optionally link a Base wallet after the first result.
+Deliver a playable vertical slice where a player can open the app, create the first wine within 3 minutes, receive a result, share/sell it, optionally link a Base wallet after the first result, and preserve selected high-signal outcomes on Base.
 
 ## Must-have
 
@@ -49,6 +49,8 @@ Deliver a playable vertical slice where a player can open the app, create the fi
 - wallet connect after first result
 - walletAddress linking
 - baseProfileLinked flag
+- preserve meaningful vintages on Base
+- preserve selected challenge moments on Base
 - `/chateau/:wallet`
 - NFT-ready metadata fields
 
@@ -78,6 +80,7 @@ Deliver a playable vertical slice where a player can open the app, create the fi
 - staking
 - betting
 - withdrawals
+- onchain buy/plant/harvest/craft/sell mutations
 - PvP
 - multiplayer
 - weather

@@ -1,4 +1,4 @@
-# Plan 011 — Phaser Tiny Map
+# Plan 012 — Phaser Tiny Map
 
 ## Goal
 Add basic playable top-down map with interaction zones.

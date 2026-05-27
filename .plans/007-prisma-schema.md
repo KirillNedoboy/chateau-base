@@ -1,4 +1,4 @@
-# Plan 006 — Prisma Schema
+# Plan 007 — Prisma Schema
 
 ## Goal
 Define authoritative backend persistence schema.

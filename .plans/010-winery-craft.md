@@ -1,4 +1,4 @@
-# Plan 009 — Winery Preview and Craft
+# Plan 010 — Winery Preview and Craft
 
 ## Goal
 Implement wine production backend.

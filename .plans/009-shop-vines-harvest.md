@@ -1,4 +1,4 @@
-# Plan 008 — Shop, Plant, Harvest
+# Plan 009 — Shop, Plant, Harvest
 
 ## Goal
 Implement the first resource loop: buy vine, plant vine, harvest grapes.

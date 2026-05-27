@@ -1,4 +1,4 @@
-# Plan 012 — Result Screen and Core UI Modals
+# Plan 013 — Result Screen and Core UI Modals
 
 ## Goal
 Build the main UI flow around shop, plot, winery, result screen, cellar, market, and share modal.

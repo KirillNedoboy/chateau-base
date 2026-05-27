@@ -1,4 +1,4 @@
-# Plan 010 — Web Shell
+# Plan 011 — Web Shell
 
 ## Goal
 Create the mobile-first web shell and connect it to API session/game state.

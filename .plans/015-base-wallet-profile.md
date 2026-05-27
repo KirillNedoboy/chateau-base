@@ -1,4 +1,4 @@
-# Plan 014 — Base Wallet and Public Profile
+# Plan 015 — Base Wallet and Public Profile
 
 ## Goal
 Add Base identity/profile layer after first wine result.

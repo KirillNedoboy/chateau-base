@@ -4,14 +4,20 @@
 
 Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Mini App, and Base-compatible web app.
 
-The MVP is not an onchain economy. Base is used only as an identity/profile/wallet-link layer:
+Pivot strategy: `Game-first + Preserve-on-Base`.
+
+Core protocol: `Backend decides. Base preserves.`
+
+The MVP is not an onchain economy. Base is used as identity/profile/wallet-link plus preserve layer for meaningful vintages and selected challenge moments:
 - Base network config
 - Base Sepolia for tests
 - wallet linking after first wine result
 - public Base profile placeholder
+- preserve records for meaningful vintages/challenge moments
 - NFT-ready metadata foundation
 
 No ERC-20, no NFT minting, no marketplace, no staking, no betting, and no withdrawals in MVP.
+No onchain buy/plant/harvest/craft/sell mutations in MVP.
 
 ## Product formula
 
@@ -76,6 +82,7 @@ Testing:
 8. Zustand may cache UI/session state, but server responses always win.
 9. Economy values must come from GameConfig, not scattered hardcoded constants.
 10. Every important mutation must use `idempotencyKey`.
+11. Onchain writes are preserve-only and never authoritative for gameplay economy.
 
 ## MVP boundaries
 
@@ -101,6 +108,8 @@ Allowed in MVP:
 - walletAddress linking
 - baseProfileLinked flag
 - `/chateau/:wallet`
+- onchain preserve of meaningful vintages
+- onchain preserve of selected challenge moments
 - NFT-ready metadata
 
 Not allowed in MVP:
@@ -109,6 +118,7 @@ Not allowed in MVP:
 - marketplace
 - staking
 - withdrawals
+- onchain buy/plant/harvest/craft/sell mutations
 - PvP
 - multiplayer
 - complex seasons
@@ -166,8 +176,9 @@ At the start of each coding session:
 2. Read `PRODUCT_SPEC.md`.
 3. Read `MVP_SCOPE.md`.
 4. Read `ARCHITECTURE.md`.
-5. Read `SESSION_NOTES.md`.
-6. Read the current plan from `.plans/`.
+5. Read `BASE_PRESERVE_PIVOT.md`.
+6. Read `SESSION_NOTES.md`.
+7. Read the current plan from `.plans/`.
 
 At the end of each coding session:
 1. Run relevant tests.

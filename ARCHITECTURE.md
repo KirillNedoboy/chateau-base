@@ -2,7 +2,7 @@
 
 ## Core principle
 
-Frontend shows. Backend decides. Phaser moves. API mutates. Database remembers. Base identifies.
+Frontend shows. Backend decides. Phaser moves. API mutates. Database remembers. Base preserves.
 
 ## System flow
 
@@ -16,6 +16,12 @@ Player Intent
 → GameEvent analytics
 → API response
 → React UI / Phaser update
+
+Preserve flow (selected outcomes only)
+→ preserve eligibility check
+→ preserve payload build
+→ onchain write request
+→ preserve receipt/status saved in backend
 
 ## Client responsibilities
 
@@ -51,6 +57,8 @@ Player Intent
 - challenge attribution
 - analytics events
 - idempotency/action logs
+- preserve eligibility decisions
+- preserve payload and onchain receipt tracking
 
 ## Game engine responsibilities
 
@@ -79,10 +87,13 @@ MVP Base features:
 - chainId stored
 - Base/Base Sepolia recognized
 - Base profile placeholder
+- meaningful vintages preserved on Base
+- selected challenge moments preserved on Base
 - Based Vintage cosmetic status
 - NFT-ready WineBatch metadata
 
 No token or minting logic in MVP.
+No onchain buy/plant/harvest/craft/sell gameplay mutations in MVP.
 
 ## Monorepo target structure
 

@@ -14,12 +14,15 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 002 shared domain types implemented.
 - Plan 003 default game config implemented.
 - Plan 004 core wine engine implemented.
+- Plan 005 moment engine implemented.
+- Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
 - API app is a minimal Fastify TypeScript shell with `/health`.
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
+- Game-engine exports pure moment detection, moment priority selection, and moment copy metadata from `packages/game-engine/src/moments`.
 - DB package is a minimal TypeScript package.
 - Game-engine has one bootstrap Vitest test and no gameplay rules.
 - DB package is a placeholder only; no Prisma schema has been added.
@@ -33,6 +36,10 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 
 Build a backend-authoritative vertical MVP:
 open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result -> share/sell -> optional Base wallet link.
+
+Pivot overlay:
+game-first + preserve-on-Base.
+Backend decides. Base preserves selected meaningful vintages and challenge moments.
 
 ### Validation
 
@@ -51,6 +58,8 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - Plan 004 review fix changed `calculateWineBatch` to return `CoreWineBatchCalculationResult` only.
 - `pnpm --filter @chateau/game-engine test` passed after removing fake placeholder fields from `calculateWineBatch`.
 - Plan 004 source scan found no `Date.now` or `Math.random` usage in game-engine source/tests for core wine engine.
+- Plan 005 RED check: `pnpm --filter @chateau/game-engine test` failed on missing moment engine exports before implementation.
+- `pnpm --filter @chateau/game-engine test` passed with 4 test files and 19 tests after implementing the moment engine.
 - `pnpm lint` passed during Plan 001 and remains available.
 
 ### Scope notes
@@ -61,13 +70,17 @@ open link -> walk -> buy vine -> plant -> harvest -> craft wine -> reveal result
 - NFT, token, and marketplace code were not implemented.
 - API routes were not implemented.
 - Frontend UI was not changed.
+- No source code was changed for Base Preserve pivot; documentation and plans only.
 - Core deterministic game-engine formulas for vine state, grape yield, bottle count, raw quality score, quality thresholds, quality caps, and wine batch orchestration were implemented.
 - Shared domain files contain type contracts only; no runtime functions/constants were added.
 - `DEFAULT_GAME_CONFIG` centralizes MVP economy/config constants; no calculation formulas were added.
 - Randomness is caller-supplied through `randomFactor`; calculations do not generate random values.
 - `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
-- Wine DNA, labels, verdicts, sale price, moments, API routes, Prisma schema, frontend UI, wallet/Base code, and persistence were not implemented.
+- Moment detection accepts explicit context input only; it does not read persistence or generate data.
+- Moment copy metadata is limited to moment titles/summaries and does not implement share cards, verdicts, labels, or UI.
+- Wine DNA, labels, verdicts, sale price, API routes, Prisma schema, frontend UI, wallet/Base integration, and persistence were not implemented.
+- Base Preserve pivot forbids onchain buy/plant/harvest/craft/sell in MVP and keeps wallet optional until first gameplay payoff.
 
 ### Next safe step
 
-Implement Plan 005 only after reading its scope and confirming it does not cross MVP boundaries.
+Implement Plan 006 (`.plans/006-onchain-cellar-contract.md`) only after reading its scope and confirming preserve-only onchain boundaries.

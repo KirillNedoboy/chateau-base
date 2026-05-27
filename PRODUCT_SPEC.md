@@ -106,6 +106,7 @@ In the first build, Base is used as:
 - profile layer
 - wallet link
 - Base-native status
+- preserve layer for meaningful vintages and selected challenge moments
 - future NFT-ready metadata
 - public cellar foundation
 
@@ -116,9 +117,15 @@ In the first build, Base is not used for:
 - staking
 - betting
 - withdrawals
+- onchain buy/plant/harvest/craft/sell gameplay mutations
 - paid transactions
 
 The game lives inside the Base ecosystem, but the economy remains off-chain.
+
+Preserve model in MVP:
+- Backend decides what is preserve-worthy.
+- Base stores selected social artifacts.
+- Base does not execute core game economy.
 
 ## 5. User model
 
@@ -1177,6 +1184,8 @@ Required:
 - wallet connect after first result
 - telegramUserId + walletAddress linking
 - Base profile placeholder
+- preserve meaningful vintages on Base
+- preserve selected challenge moments on Base
 - Based Vintage status
 - season context
 - NFT-ready metadata
@@ -1385,6 +1394,7 @@ Backend calculates:
 - share objects
 - challenge attribution
 - wallet linking
+- preserve eligibility and preserve payload
 
 Client handles:
 - movement
@@ -1504,6 +1514,7 @@ Base:
 - Base network config
 - walletAddress linking
 - Base profile placeholder
+- preserve meaningful vintages/challenge moments on Base
 - Based Vintage status
 - NFT-ready metadata
 
@@ -1534,6 +1545,7 @@ System:
 - staking
 - betting
 - withdrawals
+- onchain buy/plant/harvest/craft/sell gameplay mutations
 - PvP
 - multiplayer
 - complex seasons

@@ -1,4 +1,4 @@
-# Plan 015 — MVP Polish and Smoke Test
+# Plan 016 — MVP Polish and Smoke Test
 
 ## Goal
 Stabilize the vertical MVP and verify the complete 3-minute loop.
