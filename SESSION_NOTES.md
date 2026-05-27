@@ -15,6 +15,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 003 default game config implemented.
 - Plan 004 core wine engine implemented.
 - Plan 005 moment engine implemented.
+- Plan 006 onchain cellar contract implemented.
 - Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
@@ -23,6 +24,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
 - Game-engine exports pure moment detection, moment priority selection, and moment copy metadata from `packages/game-engine/src/moments`.
+- Contracts package now contains `ChateauCellar` preserve-only contract, ABI export, Base Sepolia deployment placeholders, and contract tests.
 - DB package is a minimal TypeScript package.
 - Game-engine has one bootstrap Vitest test and no gameplay rules.
 - DB package is a placeholder only; no Prisma schema has been added.
@@ -61,6 +63,12 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Plan 005 RED check: `pnpm --filter @chateau/game-engine test` failed on missing moment engine exports before implementation.
 - `pnpm --filter @chateau/game-engine test` passed with 4 test files and 19 tests after implementing the moment engine.
 - `pnpm lint` passed during Plan 001 and remains available.
+- Plan 006 checks passed:
+  - `pnpm --filter @chateau/contracts typecheck`
+  - `pnpm --filter @chateau/contracts test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -80,7 +88,10 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Moment copy metadata is limited to moment titles/summaries and does not implement share cards, verdicts, labels, or UI.
 - Wine DNA, labels, verdicts, sale price, API routes, Prisma schema, frontend UI, wallet/Base integration, and persistence were not implemented.
 - Base Preserve pivot forbids onchain buy/plant/harvest/craft/sell in MVP and keeps wallet optional until first gameplay payoff.
+- Plan 006 implemented only `ChateauCellar` preserve layer; no Prisma schema, no API routes, no frontend wallet UX.
+- Plan 006 contract has no ERC-20, NFT mint, marketplace, staking, betting, withdrawals, or GRAPE balance logic.
+- Duplicate preserve protection is enforced by `player + batchHash`.
 
 ### Next safe step
 
-Implement Plan 006 (`.plans/006-onchain-cellar-contract.md`) only after reading its scope and confirming preserve-only onchain boundaries.
+Implement Plan 007 (`.plans/007-prisma-schema.md`) only after reading its scope and keeping preserve-on-Base boundaries unchanged.
