@@ -1,4 +1,7 @@
+export { prisma } from "./client.js";
+export { default } from "./client.js";
+
 export const dbPackage = {
   name: "@chateau/db",
-  scope: "placeholder"
+  scope: "prisma"
 } as const;

@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChateauLevel {
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+}
+
+enum SeasonKey {
+  GENESIS_HARVEST @map("genesis_harvest")
+  TUSCANY         @map("tuscany")
+  BORDEAUX        @map("bordeaux")
+  NAPA            @map("napa")
+  GEORGIA_QVEVRI  @map("georgia_qvevri")
+  CHAMPAGNE       @map("champagne")
+}
+
+enum PlotStatus {
+  EMPTY            @map("empty")
+  PLANTED          @map("planted")
+  READY_TO_HARVEST @map("ready_to_harvest")
+}
+
+enum VineStateKey {
+  LOW_YIELD  @map("low_yield")
+  BALANCED   @map("balanced")
+  OVERCROPPED @map("overcropped")
+}
+
+enum ShopItemKey {
+  VINE                  @map("vine")
+  SCREW_CAP             @map("screw_cap")
+  CORK                  @map("cork")
+  STEEL_TANK_UNLOCK     @map("steel_tank_unlock")
+  OLD_OAK_BARREL_UNLOCK @map("old_oak_barrel_unlock")
+  NEW_OAK_BARREL_UNLOCK @map("new_oak_barrel_unlock")
+  NEW_PLOT              @map("new_plot")
+}
+
+enum WineQualityLevel {
+  COMMON    @map("common")
+  GOOD      @map("good")
+  PREMIUM   @map("premium")
+  GRAND_CRU @map("grand_cru")
+  LEGENDARY @map("legendary")
+}
+
+enum ProductionVesselKey {
+  STEEL_TANK     @map("steel_tank")
+  OLD_OAK_BARREL @map("old_oak_barrel")
+  NEW_OAK_BARREL @map("new_oak_barrel")
+}
+
+enum AgingPlanKey {
+  NO_AGING             @map("no_aging")
+  SHORT_OLD_OAK_AGING  @map("short_old_oak_aging")
+  NEW_OAK_AGING        @map("new_oak_aging")
+  NEW_TO_OLD_OAK_AGING @map("new_to_old_oak_aging")
+}
+
+enum ClosureTypeKey {
+  SCREW_CAP @map("screw_cap")
+  CORK      @map("cork")
+}
+
+enum WineBatchStatus {
+  REVEALED @map("revealed")
+  STORED   @map("stored")
+  SOLD     @map("sold")
+}
+
+enum ShareObjectType {
+  WINE_RESULT  @map("wine_result")
+  FUMBLE       @map("fumble")
+  ACHIEVEMENT  @map("achievement")
+  CHALLENGE    @map("challenge")
+  COWARD_METER @map("coward_meter")
+  CORKFATHER   @map("corkfather")
+  LEGENDARY    @map("legendary")
+}
+
+enum ShareMode {
+  CLASSY @map("classy")
+  DEGEN  @map("degen")
+}
+
+enum ReferralChallengeStatus {
+  OPENED               @map("opened")
+  STARTED              @map("started")
+  COMPLETED_FIRST_WINE @map("completed_first_wine")
+  BEAT_SCORE           @map("beat_score")
+  FAILED               @map("failed")
+}
+
+enum OnchainEventType {
+  VINTAGE_PRESERVED         @map("vintage_preserved")
+  CHALLENGE_RESULT_RECORDED @map("challenge_result_recorded")
+  BASED_WINEMAKER_CLAIMED   @map("based_winemaker_claimed")
+}
+
+enum OnchainEventStatus {
+  PENDING   @map("pending")
+  CONFIRMED @map("confirmed")
+  FAILED    @map("failed")
+}
+
+model User {
+  id                        String              @id @default(cuid())
+  telegramUserId            String?             @unique
+  walletAddress             String?             @unique
+  chainId                   Int?
+  baseProfileLinked         Boolean             @default(false)
+  grapeBalance              Int                 @default(500)
+  chateauLevel              ChateauLevel        @default(LEVEL_1)
+  tutorialState             Json?
+  sommelierViolenceEnabled  Boolean             @default(false)
+  cowardMeter               Int                 @default(0)
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+
+  plots                     Plot[]
+  vines                     Vine[]
+  inventory                 Inventory[]
+  wineBatches               WineBatch[]
+  shares                    ShareObject[]
+  inviterChallenges         ReferralChallenge[] @relation("InviterChallenges")
+  invitedChallenges         ReferralChallenge[] @relation("InvitedChallenges")
+  recipeHistory             RecipeHistory[]
+  cellar                    Cellar?
+  actionLogs                GameActionLog[]
+  events                    GameEvent[]
+  onchainEvents             OnchainEvent[]
+
+  @@index([walletAddress])
+}
+
+model Season {
+  id        String     @id @default(cuid())
+  key       SeasonKey  @unique
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime?
+  isActive  Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  wineBatches WineBatch[]
+
+  @@index([isActive])
+}
+
+model Plot {
+  id        String     @id @default(cuid())
+  userId    String
+  index     Int
+  status    PlotStatus @default(EMPTY)
+  vineId    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vines     Vine[]
+
+  @@unique([userId, index])
+  @@index([userId, status])
+  @@index([vineId])
+}
+
+model Vine {
+  id              String       @id @default(cuid())
+  userId          String
+  plotId          String
+  harvestCount    Int          @default(0)
+  state           VineStateKey @default(LOW_YIELD)
+  plantedAt       DateTime
+  readyAt         DateTime
+  lastHarvestedAt DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plot            Plot         @relation(fields: [plotId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readyAt])
+  @@index([plotId, createdAt])
+}
+
+model Inventory {
+  id        String      @id @default(cuid())
+  userId    String
+  itemKey   ShopItemKey
+  quantity  Int         @default(0)
+  updatedAt DateTime    @updatedAt
+  createdAt DateTime    @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemKey])
+  @@index([userId, updatedAt])
+}
+
+model WineBatch {
+  id                String               @id @default(cuid())
+  userId            String
+  seasonId          String
+  seasonKey         SeasonKey
+  gameConfigVersion String
+
+  batchHash         String               @unique
+  metadataUri       String?
+  onchainEligible   Boolean              @default(false)
+  preservedOnchain  Boolean              @default(false)
+  preserveTxHash    String?
+  preserveChainId   Int?
+  preservedAt       DateTime?
+
+  qualityLevel      WineQualityLevel
+  qualityScore      Int
+  rawQualityScore   Int
+  rawQualityLevel   WineQualityLevel
+  capApplied        Boolean              @default(false)
+  capAppliedLevel   WineQualityLevel?
+  capCause          String?
+
+  productionVessel  ProductionVesselKey
+  agingPlan         AgingPlanKey
+  closureType       ClosureTypeKey
+  vineState         VineStateKey
+  grapeAmount       Int
+  bottleCount       Int
+
+  profile           Json?
+  styleTags         Json?
+  label             Json?
+  moments           Json?
+  primaryMoment     String?
+  verdict           Json?
+  nftReadyMetadata  Json?
+  recipe            Json?
+
+  salePrice         Int?
+  status            WineBatchStatus      @default(REVEALED)
+  createdAt         DateTime             @default(now())
+  soldAt            DateTime?
+  storedAt          DateTime?
+  updatedAt         DateTime             @updatedAt
+
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season            Season               @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  shares            ShareObject[]
+  sourceChallenges  ReferralChallenge[]  @relation("ChallengeSourceBatch")
+  onchainEvents     OnchainEvent[]
+
+  @@index([userId, createdAt])
+  @@index([seasonId, qualityLevel])
+  @@index([batchHash])
+  @@index([preserveTxHash])
+}
+
+model ShareObject {
+  id          String         @id @default(cuid())
+  userId      String
+  batchId     String?
+  type        ShareObjectType
+  mode        ShareMode
+  title       String
+  subtitle    String
+  body        String
+  imageUrl    String?
+  deeplinkUrl String         @unique
+  payload     Json
+  createdAt   DateTime       @default(now())
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batch       WineBatch?     @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  sourceChallenges ReferralChallenge[] @relation("SourceShareChallenges")
+
+  @@index([userId, createdAt])
+  @@index([batchId])
+}
+
+model ReferralChallenge {
+  id             String                   @id @default(cuid())
+  inviterUserId  String
+  invitedUserId  String?
+  sourceShareId  String
+  sourceBatchId  String?
+  status         ReferralChallengeStatus  @default(OPENED)
+  inviterScore   Int?
+  invitedScore   Int?
+  createdAt      DateTime                 @default(now())
+  completedAt    DateTime?
+
+  inviter        User                     @relation("InviterChallenges", fields: [inviterUserId], references: [id], onDelete: Cascade)
+  invited        User?                    @relation("InvitedChallenges", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  sourceShare    ShareObject              @relation("SourceShareChallenges", fields: [sourceShareId], references: [id], onDelete: Cascade)
+  sourceBatch    WineBatch?               @relation("ChallengeSourceBatch", fields: [sourceBatchId], references: [id], onDelete: SetNull)
+  onchainEvents  OnchainEvent[]
+
+  @@index([sourceShareId])
+  @@index([sourceBatchId])
+  @@index([inviterUserId, createdAt])
+  @@index([invitedUserId])
+  @@index([status])
+}
+
+model RecipeHistory {
+  id                String               @id @default(cuid())
+  userId            String
+  productionVessel  ProductionVesselKey
+  agingPlan         AgingPlanKey
+  closureType       ClosureTypeKey
+  vineState         VineStateKey
+  timesUsed         Int                  @default(1)
+  bestScore         Int
+  bestQualityLevel  WineQualityLevel
+  lastUsedAt        DateTime
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productionVessel, agingPlan, closureType, vineState])
+  @@index([userId, lastUsedAt])
+}
+
+model Cellar {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  usedSlots Int      @default(0)
+  maxSlots  Int      @default(10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameActionLog {
+  id             String   @id @default(cuid())
+  userId         String
+  actionType     String
+  idempotencyKey String
+  requestPayload Json
+  responsePayload Json?
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, actionType, idempotencyKey])
+  @@index([userId, createdAt])
+}
+
+model GameEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String?
+  name      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+}
+
+model OnchainEvent {
+  id              String             @id @default(cuid())
+  userId          String
+  walletAddress   String
+  chainId         Int
+  contractAddress String
+  eventType       OnchainEventType
+  txHash          String
+  blockNumber     BigInt
+  batchId         String?
+  challengeId     String?
+  status          OnchainEventStatus @default(PENDING)
+  rawPayload      Json
+  createdAt       DateTime           @default(now())
+  confirmedAt     DateTime?
+
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batch           WineBatch?         @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  challenge       ReferralChallenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+
+  @@unique([chainId, txHash])
+  @@index([walletAddress])
+  @@index([batchId])
+  @@index([challengeId])
+  @@index([status, createdAt])
+}

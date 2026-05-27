@@ -4,18 +4,30 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --noEmit false",
     "dev": "tsc --watch --noEmit",
     "lint": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@prisma/client": "6.19.0"
+  },
   "devDependencies": {
     "@types/node": "25.9.1",
+    "prisma": "6.19.0",
+    "tsx": "4.20.6",
     "typescript": "6.0.3",
     "vitest": "4.1.7"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

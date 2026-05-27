@@ -16,6 +16,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 004 core wine engine implemented.
 - Plan 005 moment engine implemented.
 - Plan 006 onchain cellar contract implemented.
+- Plan 007 Prisma schema implemented.
 - Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
@@ -26,6 +27,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Game-engine exports pure moment detection, moment priority selection, and moment copy metadata from `packages/game-engine/src/moments`.
 - Contracts package now contains `ChateauCellar` preserve-only contract, ABI export, Base Sepolia deployment placeholders, and contract tests.
 - DB package is a minimal TypeScript package.
+- DB package now includes Prisma schema, Prisma client export, and Genesis Harvest seed.
 - Game-engine has one bootstrap Vitest test and no gameplay rules.
 - DB package is a placeholder only; no Prisma schema has been added.
 - Product specification exists in `PRODUCT_SPEC.md`.
@@ -69,6 +71,11 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 007 checks passed:
+  - `pnpm --filter @chateau/db prisma:generate`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -91,7 +98,10 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Plan 006 implemented only `ChateauCellar` preserve layer; no Prisma schema, no API routes, no frontend wallet UX.
 - Plan 006 contract has no ERC-20, NFT mint, marketplace, staking, betting, withdrawals, or GRAPE balance logic.
 - Duplicate preserve protection is enforced by `player + batchHash`.
+- Plan 007 implemented persistence models only (including `OnchainEvent` and preserve-on-Base fields on `WineBatch`); no API routes, no frontend, no wallet UX, and no contract logic changes.
+- Plan 007 includes composite idempotency unique constraint on `GameActionLog(userId, actionType, idempotencyKey)`.
+- Plan 007 adds indexes for `walletAddress`, `batchHash`, `preserveTxHash`, share deeplinks, and challenge attribution.
 
 ### Next safe step
 
-Implement Plan 007 (`.plans/007-prisma-schema.md`) only after reading its scope and keeping preserve-on-Base boundaries unchanged.
+Implement Plan 008 only after reading its scope and keeping preserve-on-Base boundaries unchanged.
