@@ -8,5 +8,6 @@ export type * from "./domain/season.js";
 export type * from "./domain/share.js";
 export type * from "./domain/tutorial.js";
 export type * from "./domain/user.js";
+export { HARVESTED_GRAPE_ITEM_KEY } from "./domain/vine.js";
 export type * from "./domain/vine.js";
 export type * from "./domain/wine.js";

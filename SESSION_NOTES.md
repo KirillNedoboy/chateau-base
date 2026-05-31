@@ -18,6 +18,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 006 onchain cellar contract implemented.
 - Plan 007 Prisma schema implemented.
 - Plan 008 API session/idempotency foundation implemented.
+- Plan 009 shop/vine/harvest API loop implemented.
 - Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
@@ -26,6 +27,10 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
   - `POST /api/session/start`
   - `GET /api/game/state`
   - `POST /api/analytics/event`
+- API app now also includes backend-authoritative mutation endpoints:
+  - `POST /api/shop/buy`
+  - `POST /api/vines/plant`
+  - `POST /api/vines/harvest`
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
@@ -95,6 +100,25 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 009 RED check: `pnpm --filter @chateau/api test -- plan009-api-shop-vines-harvest.test.ts` failed with 13/13 failures because the shop and vine mutation routes were not implemented yet.
+- Plan 009 checks passed:
+  - `pnpm --filter @chateau/api test -- plan009-api-shop-vines-harvest.test.ts`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 009 blocker-fix checks passed:
+  - `pnpm --filter @chateau/db prisma:generate`
+  - `pnpm --filter @chateau/api test -- plan009-api-shop-vines-harvest.test.ts`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 009 shared-inventory medium-fix RED check: `pnpm --filter @chateau/shared test -- vine.test.ts` failed because `HARVESTED_GRAPE_ITEM_KEY` was not exported.
+- Plan 009 shared-inventory medium-fix checks passed:
+  - `pnpm --filter @chateau/shared test -- vine.test.ts`
+  - `pnpm --filter @chateau/api test -- plan009-api-shop-vines-harvest.test.ts`
+  - `pnpm typecheck`
 
 ### Scope notes
 
@@ -106,7 +130,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Frontend UI was not changed.
 - No source code was changed for Base Preserve pivot; documentation and plans only.
 - Core deterministic game-engine formulas for vine state, grape yield, bottle count, raw quality score, quality thresholds, quality caps, and wine batch orchestration were implemented.
-- Shared domain files contain type contracts only; no runtime functions/constants were added.
+- Shared domain files contain type contracts plus canonical domain constants only; no runtime mutation logic was added.
 - `DEFAULT_GAME_CONFIG` centralizes MVP economy/config constants; no calculation formulas were added.
 - Randomness is caller-supplied through `randomFactor`; calculations do not generate random values.
 - `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
@@ -133,7 +157,28 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `anonymousSessionId` is validated to reject control characters before building `anon:${anonymousSessionId}` identity keys.
   - `withIdempotency` now stores successful responses in a wrapped shape (`__chateauIdempotencyResult + data`) and unwraps on read; pending state no longer collides with real payload content.
   - Added tests for reserved-prefix rejection, anonymous start success, telegram/anonymous key separation for same numeric values, and payload collision safety for `{ "__idempotencyStatus": "pending" }`.
+- Plan 009 implementation:
+  - Shop buy is backend-authoritative and uses `DEFAULT_GAME_CONFIG.shopPrices` for all prices.
+  - Plant and harvest mutations require `idempotencyKey` and run through `withIdempotency`.
+  - Plant uses logical `plotId` format (`plot_<index>`) to validate locked vs unlocked plots without exposing database IDs.
+  - Plant uses tutorial growth time while tutorial is active and early growth time after tutorial completion.
+  - Harvest uses `calculateVineState` and `calculateGrapeYield` from `@chateau/game-engine`.
+  - Inventory now supports canonical harvested grape storage via `itemKey = grape` / Prisma enum `GRAPE`.
+  - Harvest increments harvested grape inventory, leaves `user.grapeBalance` unchanged as spendable GRAPE currency, increments `harvestCount`, keeps the vine on the plot, and schedules the next `readyAt`.
+  - Mutation handlers emit analytics events for `vine_bought`, `vine_planted`, and `vine_harvested`.
+  - Prisma schema changed minimally to allow harvested grapes in `Inventory`; no new tables or destructive migrations were introduced.
+  - Test helper now explicitly warns that it does not emulate rollback or real DB transaction isolation/concurrency.
+- Plan 009 shared-inventory medium fix:
+  - `packages/shared/src/domain/vine.ts` now exposes item-keyed `InventoryItemKey`, `InventoryItem`, and `InventorySnapshot` contracts.
+  - `Inventory` is now an alias of `InventorySnapshot`, not the old denormalized `grapes/vines/screwCaps/corks` shape.
+  - `HARVESTED_GRAPE_ITEM_KEY = "grape"` is exported from `@chateau/shared`.
+  - Harvest API responses use the shared app-level `"grape"` key while keeping the Prisma enum boundary explicit as `GRAPE @map("grape")`.
+  - No winery, wallet, preserve API, frontend, contract, or runtime gameplay behavior changes were made.
+
+### Technical debt
+
+- Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
 
 ### Next safe step
 
-Implement Plan 009 only after reading its scope and keeping preserve-on-Base boundaries unchanged.
+Implement Plan 010 winery preview/craft without changing preserve-on-Base boundaries, frontend scope, or wallet timing.

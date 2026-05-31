@@ -11,20 +11,29 @@ export type ShopItemKey =
   | "new_oak_barrel_unlock"
   | "new_plot";
 
+export const HARVESTED_GRAPE_ITEM_KEY = "grape" as const;
+
+export type HarvestedGrapeItemKey = typeof HARVESTED_GRAPE_ITEM_KEY;
+
+export type InventoryItemKey = ShopItemKey | HarvestedGrapeItemKey;
+
 export type EquipmentUnlockKey =
   | "steel_tank"
   | "old_oak_barrel"
   | "new_oak_barrel";
 
-export type Inventory = {
+export type InventoryItem = {
+  id: string;
   userId: string;
-  grapes: number;
-  vines: number;
-  screwCaps: number;
-  corks: number;
-  unlockedEquipment: EquipmentUnlockKey[];
-  updatedAt: string;
+  itemKey: InventoryItemKey;
+  quantity: number;
 };
+
+export type InventorySnapshot = {
+  items: InventoryItem[];
+};
+
+export type Inventory = InventorySnapshot;
 
 export type Vine = {
   id: string;
