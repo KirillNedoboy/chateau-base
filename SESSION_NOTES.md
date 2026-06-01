@@ -19,6 +19,7 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
 - Plan 007 Prisma schema implemented.
 - Plan 008 API session/idempotency foundation implemented.
 - Plan 009 shop/vine/harvest API loop implemented.
+- Plan 010 winery preview/craft API implemented.
 - Base Preserve pivot documentation applied.
 - pnpm workspace created with `apps/web`, `apps/api`, `packages/shared`, `packages/game-engine`, and `packages/db`.
 - Web app is a minimal Next.js TypeScript shell.
@@ -31,10 +32,13 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
   - `POST /api/shop/buy`
   - `POST /api/vines/plant`
   - `POST /api/vines/harvest`
+  - `POST /api/winery/preview`
+  - `POST /api/winery/craft`
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
 - Game-engine exports pure moment detection, moment priority selection, and moment copy metadata from `packages/game-engine/src/moments`.
+- Game-engine now exports deterministic WineBatch output helpers for Wine DNA, style tags, labels, verdicts, sale price, tutorial first-wine adjustment, batch hash, metadata, and onchain eligibility.
 - Contracts package now contains `ChateauCellar` preserve-only contract, ABI export, Base Sepolia deployment placeholders, and contract tests.
 - DB package is a minimal TypeScript package.
 - DB package now includes Prisma schema, Prisma client export, and Genesis Harvest seed.
@@ -119,14 +123,40 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm --filter @chateau/shared test -- vine.test.ts`
   - `pnpm --filter @chateau/api test -- plan009-api-shop-vines-harvest.test.ts`
   - `pnpm typecheck`
+- Plan 010 RED checks:
+  - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts` failed on missing full WineBatch output helper exports.
+  - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts` failed with 8/8 failures because winery routes were not implemented.
+- Plan 010 checks passed:
+  - `pnpm --filter @chateau/game-engine test`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 010 review-fix RED checks:
+  - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts` failed because tutorial first-wine still used `idempotencyKey` and `batchHash` changed when only `idempotencyKey` changed.
+  - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts` failed because stale inventory still crafted, tutorial quality changed with `idempotencyKey`, and `RecipeHistory.bestQualityLevel` regressed.
+- Plan 010 review-fix checks passed:
+  - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts`
+  - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts`
+  - `pnpm --filter @chateau/game-engine test`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 010 batch-hash uniqueness fix RED checks:
+  - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts` failed because `batchId` did not affect `batchHash`.
+  - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts` failed because a second identical legitimate craft hit duplicate `batchHash`.
+- Plan 010 batch-hash uniqueness fix checks passed:
+  - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts`
+  - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts`
 
 ### Scope notes
 
-- Gameplay was not implemented.
+- Frontend gameplay was not implemented.
 - Wallet code was not implemented.
-- Prisma schema was not implemented.
+- Prisma schema is implemented for current backend persistence.
 - NFT, token, and marketplace code were not implemented.
-- API routes were not implemented.
+- API routes are implemented through winery preview/craft; wine sell/store/share/challenge/wallet routes are still not implemented.
 - Frontend UI was not changed.
 - No source code was changed for Base Preserve pivot; documentation and plans only.
 - Core deterministic game-engine formulas for vine state, grape yield, bottle count, raw quality score, quality thresholds, quality caps, and wine batch orchestration were implemented.
@@ -136,7 +166,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
 - Moment detection accepts explicit context input only; it does not read persistence or generate data.
 - Moment copy metadata is limited to moment titles/summaries and does not implement share cards, verdicts, labels, or UI.
-- Wine DNA, labels, verdicts, sale price, API routes, Prisma schema, frontend UI, wallet/Base integration, and persistence were not implemented.
+- Wine DNA, labels, verdicts, sale price, winery API routes, Prisma schema, and core backend persistence are now implemented through Plan 010; frontend UI, wallet/Base integration, preserve transactions, share/challenge, and sell/store APIs are still not implemented.
 - Base Preserve pivot forbids onchain buy/plant/harvest/craft/sell in MVP and keeps wallet optional until first gameplay payoff.
 - Plan 006 implemented only `ChateauCellar` preserve layer; no Prisma schema, no API routes, no frontend wallet UX.
 - Plan 006 contract has no ERC-20, NFT mint, marketplace, staking, betting, withdrawals, or GRAPE balance logic.
@@ -174,11 +204,32 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `HARVESTED_GRAPE_ITEM_KEY = "grape"` is exported from `@chateau/shared`.
   - Harvest API responses use the shared app-level `"grape"` key while keeping the Prisma enum boundary explicit as `GRAPE @map("grape")`.
   - No winery, wallet, preserve API, frontend, contract, or runtime gameplay behavior changes were made.
+- Plan 010 implementation:
+  - Winery preview validates recipe input, checks harvested grape inventory, closure inventory, and oak unlocks, returns missing resources, required unlocks, estimated bottle count, applicable caps, and max possible quality.
+  - Winery craft requires `idempotencyKey`, uses `withIdempotency`, consumes harvested `Inventory.GRAPE` and one closure item, and does not spend `user.grapeBalance`.
+  - Craft creates full `WineBatch` records with season, config version, recipe, quality score/levels, cap metadata, DNA profile, style tags, label, moments, primary moment, verdicts, sale price, batch hash, metadata URI, onchain eligibility, `preservedOnchain = false`, and NFT-ready metadata JSON.
+  - Craft updates `RecipeHistory` and emits `production_started` and `wine_revealed` events.
+  - Tutorial first wine is deterministically adjusted to avoid Common without calling `Math.random` in game-engine.
+  - Onchain eligibility is metadata-only and true for Premium+ or configured meaningful moments; no preserve transaction, contract call, NFT mint, ERC-20, marketplace, wallet UX, frontend, or contract code was added.
+  - MVP craft currently treats harvested grape inventory as a single lot with `low_yield` vine state until grape-lot provenance exists.
+- Plan 010 review-fix implementation:
+  - Craft inventory consumption now uses guarded `updateMany` decrements with `quantity >= required` inside the transaction and fails before `WineBatch` creation if the guarded write does not affect exactly one row.
+  - Tutorial first-wine Good/Premium distribution now uses a backend-owned deterministic seed from `userId + active season key + tutorial-first-wine`, not the client-chosen `idempotencyKey`.
+  - `RecipeHistory` now increments `timesUsed`, updates `lastUsedAt`, and preserves `bestScore` plus the matching `bestQualityLevel` unless the current craft improves the best score.
+  - `batchHash` no longer includes `idempotencyKey`; it is built with stable key ordering from meaningful persisted/preserve payload fields including season/config, recipe choices, raw/final quality, caps, profile, style tags, label, moments, verdicts, sale price, and stable metadata URI input.
+  - The API test helper now supports guarded `inventory.updateMany`, transaction rollback for route tests, and direct `RecipeHistory` read/update/create paths used by the service.
+  - Grape provenance remains an explicit MVP fallback: harvested grapes are generic inventory, and persisted `LOW_YIELD` is a compatibility stand-in until a dedicated lot/provenance model exists.
+- Plan 010 batch-hash uniqueness fix:
+  - Craft now generates a backend-owned UUID `WineBatch.id` before `WineBatch.create`.
+  - `createBatchHash` includes that persisted `batchId` plus the meaningful payload and still excludes client-controlled `idempotencyKey`.
+  - Two identical legitimate crafts can now create separate `WineBatch` rows with distinct ids and distinct `batchHash` values.
+  - Repeated same `idempotencyKey` still returns the stored idempotent response with the same `WineBatch.id` and `batchHash`.
 
 ### Technical debt
 
 - Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
+- Introduce GrapeLot/provenance before multiple vine states materially affect quality.
 
 ### Next safe step
 
-Implement Plan 010 winery preview/craft without changing preserve-on-Base boundaries, frontend scope, or wallet timing.
+Implement Plan 011 wine sell/store and cellar read APIs without changing preserve-on-Base transaction boundaries, frontend scope, or wallet timing.

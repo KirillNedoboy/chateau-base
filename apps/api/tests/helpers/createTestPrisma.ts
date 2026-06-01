@@ -103,7 +103,71 @@ type TestVine = {
 type TestWineBatch = {
   id: string;
   userId: string;
+  seasonId: string;
+  seasonKey: "GENESIS_HARVEST";
+  gameConfigVersion: string;
+  batchHash: string;
+  metadataUri: string | null;
+  onchainEligible: boolean;
   preservedOnchain: boolean;
+  preserveTxHash: string | null;
+  preserveChainId: number | null;
+  preservedAt: Date | null;
+  qualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+  qualityScore: number;
+  rawQualityScore: number;
+  rawQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+  capApplied: boolean;
+  capAppliedLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY" | null;
+  capCause: string | null;
+  productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+  agingPlan:
+    | "NO_AGING"
+    | "SHORT_OLD_OAK_AGING"
+    | "NEW_OAK_AGING"
+    | "NEW_TO_OLD_OAK_AGING";
+  closureType: "SCREW_CAP" | "CORK";
+  vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+  grapeAmount: number;
+  bottleCount: number;
+  profile: JsonValue | null;
+  styleTags: JsonValue | null;
+  label: JsonValue | null;
+  moments: JsonValue | null;
+  primaryMoment: string | null;
+  verdict: JsonValue | null;
+  nftReadyMetadata: JsonValue | null;
+  recipe: JsonValue | null;
+  salePrice: number | null;
+  status: "REVEALED" | "STORED" | "SOLD";
+  createdAt: Date;
+  soldAt: Date | null;
+  storedAt: Date | null;
+  updatedAt: Date;
+};
+
+type TestRecipeHistory = {
+  id: string;
+  userId: string;
+  productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+  agingPlan:
+    | "NO_AGING"
+    | "SHORT_OLD_OAK_AGING"
+    | "NEW_OAK_AGING"
+    | "NEW_TO_OLD_OAK_AGING";
+  closureType: "SCREW_CAP" | "CORK";
+  vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+  timesUsed: number;
+  bestScore: number;
+  bestQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+  lastUsedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type TestOnchainEvent = {
+  id: string;
+  userId: string;
 };
 
 export type TestDbState = {
@@ -116,6 +180,9 @@ export type TestDbState = {
   inventories: TestInventory[];
   vines: TestVine[];
   wineBatches: TestWineBatch[];
+  recipeHistory: TestRecipeHistory[];
+  onchainEvents: TestOnchainEvent[];
+  beforeNextInventoryUpdateMany?: (() => void) | null;
 };
 
 function createInitialTutorialState(): TutorialState {
@@ -173,15 +240,48 @@ export function createTestPrisma() {
     cellars: [],
     inventories: [],
     vines: [],
-    wineBatches: []
+    wineBatches: [],
+    recipeHistory: [],
+    onchainEvents: [],
+    beforeNextInventoryUpdateMany: null
   };
 
   let idCounter = 0;
   const nextId = (prefix: string) => `${prefix}_${++idCounter}`;
 
   const prismaLike = {
-    $transaction: async <T>(handler: (tx: typeof prismaLike) => Promise<T>) =>
-      handler(prismaLike),
+    $transaction: async <T>(handler: (tx: typeof prismaLike) => Promise<T>) => {
+      const snapshot = {
+        users: structuredClone(state.users),
+        seasons: structuredClone(state.seasons),
+        gameEvents: structuredClone(state.gameEvents),
+        gameActionLogs: structuredClone(state.gameActionLogs),
+        plots: structuredClone(state.plots),
+        cellars: structuredClone(state.cellars),
+        inventories: structuredClone(state.inventories),
+        vines: structuredClone(state.vines),
+        wineBatches: structuredClone(state.wineBatches),
+        recipeHistory: structuredClone(state.recipeHistory),
+        onchainEvents: structuredClone(state.onchainEvents)
+      };
+
+      try {
+        return await handler(prismaLike);
+      } catch (error) {
+        state.users = snapshot.users;
+        state.seasons = snapshot.seasons;
+        state.gameEvents = snapshot.gameEvents;
+        state.gameActionLogs = snapshot.gameActionLogs;
+        state.plots = snapshot.plots;
+        state.cellars = snapshot.cellars;
+        state.inventories = snapshot.inventories;
+        state.vines = snapshot.vines;
+        state.wineBatches = snapshot.wineBatches;
+        state.recipeHistory = snapshot.recipeHistory;
+        state.onchainEvents = snapshot.onchainEvents;
+        throw error;
+      }
+    },
     user: {
       findUnique: async ({
         where
@@ -542,6 +642,50 @@ export function createTestPrisma() {
         entry.quantity = applyNumericUpdate(entry.quantity, data.quantity);
         entry.updatedAt = new Date();
         return entry;
+      },
+      updateMany: async ({
+        where,
+        data
+      }: {
+        where: {
+          userId?: string;
+          itemKey?:
+            | "GRAPE"
+            | "VINE"
+            | "SCREW_CAP"
+            | "CORK"
+            | "STEEL_TANK_UNLOCK"
+            | "OLD_OAK_BARREL_UNLOCK"
+            | "NEW_OAK_BARREL_UNLOCK"
+            | "NEW_PLOT";
+          quantity?: { gte?: number };
+        };
+        data: {
+          quantity:
+            | number
+            | {
+                increment?: number;
+                decrement?: number;
+              };
+        };
+      }) => {
+        const beforeHook = state.beforeNextInventoryUpdateMany;
+        state.beforeNextInventoryUpdateMany = null;
+        beforeHook?.();
+
+        const matching = state.inventories.filter(
+          (entry) =>
+            (where.userId === undefined || entry.userId === where.userId) &&
+            (where.itemKey === undefined || entry.itemKey === where.itemKey) &&
+            (where.quantity?.gte === undefined || entry.quantity >= where.quantity.gte)
+        );
+
+        for (const entry of matching) {
+          entry.quantity = applyNumericUpdate(entry.quantity, data.quantity);
+          entry.updatedAt = new Date();
+        }
+
+        return { count: matching.length };
       }
     },
     vine: {
@@ -634,7 +778,283 @@ export function createTestPrisma() {
             entry.userId === where.userId &&
             (where.preservedOnchain === undefined ||
               entry.preservedOnchain === where.preservedOnchain)
-        ).length
+        ).length,
+      findMany: async ({ where }: { where: { userId: string } }) =>
+        state.wineBatches.filter((entry) => entry.userId === where.userId),
+      create: async ({
+        data
+      }: {
+        data: {
+          id?: string;
+          userId: string;
+          seasonId: string;
+          seasonKey: "GENESIS_HARVEST";
+          gameConfigVersion: string;
+          batchHash: string;
+          metadataUri?: string | null;
+          onchainEligible?: boolean;
+          preservedOnchain?: boolean;
+          qualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          qualityScore: number;
+          rawQualityScore: number;
+          rawQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          capApplied?: boolean;
+          capAppliedLevel?:
+            | "COMMON"
+            | "GOOD"
+            | "PREMIUM"
+            | "GRAND_CRU"
+            | "LEGENDARY"
+            | null;
+          capCause?: string | null;
+          productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+          agingPlan:
+            | "NO_AGING"
+            | "SHORT_OLD_OAK_AGING"
+            | "NEW_OAK_AGING"
+            | "NEW_TO_OLD_OAK_AGING";
+          closureType: "SCREW_CAP" | "CORK";
+          vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+          grapeAmount: number;
+          bottleCount: number;
+          profile?: JsonValue | null;
+          styleTags?: JsonValue | null;
+          label?: JsonValue | null;
+          moments?: JsonValue | null;
+          primaryMoment?: string | null;
+          verdict?: JsonValue | null;
+          nftReadyMetadata?: JsonValue | null;
+          recipe?: JsonValue | null;
+          salePrice?: number | null;
+        };
+      }) => {
+        const duplicate = state.wineBatches.find(
+          (entry) => entry.batchHash === data.batchHash
+        );
+        if (duplicate) {
+          const error = new Error("Unique constraint violation") as Error & {
+            code?: string;
+          };
+          error.code = "P2002";
+          throw error;
+        }
+        const now = new Date();
+        const batch: TestWineBatch = {
+          id: data.id ?? nextId("wine_batch"),
+          userId: data.userId,
+          seasonId: data.seasonId,
+          seasonKey: data.seasonKey,
+          gameConfigVersion: data.gameConfigVersion,
+          batchHash: data.batchHash,
+          metadataUri: data.metadataUri ?? null,
+          onchainEligible: data.onchainEligible ?? false,
+          preservedOnchain: data.preservedOnchain ?? false,
+          preserveTxHash: null,
+          preserveChainId: null,
+          preservedAt: null,
+          qualityLevel: data.qualityLevel,
+          qualityScore: data.qualityScore,
+          rawQualityScore: data.rawQualityScore,
+          rawQualityLevel: data.rawQualityLevel,
+          capApplied: data.capApplied ?? false,
+          capAppliedLevel: data.capAppliedLevel ?? null,
+          capCause: data.capCause ?? null,
+          productionVessel: data.productionVessel,
+          agingPlan: data.agingPlan,
+          closureType: data.closureType,
+          vineState: data.vineState,
+          grapeAmount: data.grapeAmount,
+          bottleCount: data.bottleCount,
+          profile: data.profile ?? null,
+          styleTags: data.styleTags ?? null,
+          label: data.label ?? null,
+          moments: data.moments ?? null,
+          primaryMoment: data.primaryMoment ?? null,
+          verdict: data.verdict ?? null,
+          nftReadyMetadata: data.nftReadyMetadata ?? null,
+          recipe: data.recipe ?? null,
+          salePrice: data.salePrice ?? null,
+          status: "REVEALED",
+          createdAt: now,
+          soldAt: null,
+          storedAt: null,
+          updatedAt: now
+        };
+        state.wineBatches.push(batch);
+        return batch;
+      }
+    },
+    recipeHistory: {
+      findUnique: async ({
+        where
+      }: {
+        where: {
+          userId_productionVessel_agingPlan_closureType_vineState: {
+            userId: string;
+            productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+            agingPlan:
+              | "NO_AGING"
+              | "SHORT_OLD_OAK_AGING"
+              | "NEW_OAK_AGING"
+              | "NEW_TO_OLD_OAK_AGING";
+            closureType: "SCREW_CAP" | "CORK";
+            vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+          };
+        };
+      }) => {
+        const unique = where.userId_productionVessel_agingPlan_closureType_vineState;
+        return (
+          state.recipeHistory.find(
+            (entry) =>
+              entry.userId === unique.userId &&
+              entry.productionVessel === unique.productionVessel &&
+              entry.agingPlan === unique.agingPlan &&
+              entry.closureType === unique.closureType &&
+              entry.vineState === unique.vineState
+          ) ?? null
+        );
+      },
+      update: async ({
+        where,
+        data
+      }: {
+        where: { id: string };
+        data: {
+          timesUsed?: { increment?: number };
+          bestScore?: number;
+          bestQualityLevel?: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          lastUsedAt?: Date;
+        };
+      }) => {
+        const existing = state.recipeHistory.find((entry) => entry.id === where.id);
+        if (!existing) {
+          throw new Error("RecipeHistory not found");
+        }
+        existing.timesUsed += data.timesUsed?.increment ?? 0;
+        if (data.bestScore !== undefined) {
+          existing.bestScore = data.bestScore;
+        }
+        if (data.bestQualityLevel !== undefined) {
+          existing.bestQualityLevel = data.bestQualityLevel;
+        }
+        if (data.lastUsedAt !== undefined) {
+          existing.lastUsedAt = data.lastUsedAt;
+        }
+        existing.updatedAt = new Date();
+        return existing;
+      },
+      create: async ({
+        data
+      }: {
+        data: {
+          userId: string;
+          productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+          agingPlan:
+            | "NO_AGING"
+            | "SHORT_OLD_OAK_AGING"
+            | "NEW_OAK_AGING"
+            | "NEW_TO_OLD_OAK_AGING";
+          closureType: "SCREW_CAP" | "CORK";
+          vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+          timesUsed: number;
+          bestScore: number;
+          bestQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          lastUsedAt: Date;
+        };
+      }) => {
+        const now = new Date();
+        const history: TestRecipeHistory = {
+          id: nextId("recipe"),
+          userId: data.userId,
+          productionVessel: data.productionVessel,
+          agingPlan: data.agingPlan,
+          closureType: data.closureType,
+          vineState: data.vineState,
+          timesUsed: data.timesUsed,
+          bestScore: data.bestScore,
+          bestQualityLevel: data.bestQualityLevel,
+          lastUsedAt: data.lastUsedAt,
+          createdAt: now,
+          updatedAt: now
+        };
+        state.recipeHistory.push(history);
+        return history;
+      },
+      upsert: async ({
+        where,
+        update,
+        create
+      }: {
+        where: {
+          userId_productionVessel_agingPlan_closureType_vineState: {
+            userId: string;
+            productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+            agingPlan:
+              | "NO_AGING"
+              | "SHORT_OLD_OAK_AGING"
+              | "NEW_OAK_AGING"
+              | "NEW_TO_OLD_OAK_AGING";
+            closureType: "SCREW_CAP" | "CORK";
+            vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+          };
+        };
+        update: {
+          timesUsed?: { increment?: number };
+          bestScore: number;
+          bestQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          lastUsedAt: Date;
+        };
+        create: {
+          userId: string;
+          productionVessel: "STEEL_TANK" | "OLD_OAK_BARREL" | "NEW_OAK_BARREL";
+          agingPlan:
+            | "NO_AGING"
+            | "SHORT_OLD_OAK_AGING"
+            | "NEW_OAK_AGING"
+            | "NEW_TO_OLD_OAK_AGING";
+          closureType: "SCREW_CAP" | "CORK";
+          vineState: "LOW_YIELD" | "BALANCED" | "OVERCROPPED";
+          timesUsed: number;
+          bestScore: number;
+          bestQualityLevel: "COMMON" | "GOOD" | "PREMIUM" | "GRAND_CRU" | "LEGENDARY";
+          lastUsedAt: Date;
+        };
+      }) => {
+        const unique = where.userId_productionVessel_agingPlan_closureType_vineState;
+        const existing = state.recipeHistory.find(
+          (entry) =>
+            entry.userId === unique.userId &&
+            entry.productionVessel === unique.productionVessel &&
+            entry.agingPlan === unique.agingPlan &&
+            entry.closureType === unique.closureType &&
+            entry.vineState === unique.vineState
+        );
+        if (existing) {
+          existing.timesUsed += update.timesUsed?.increment ?? 0;
+          existing.bestScore = Math.max(existing.bestScore, update.bestScore);
+          existing.bestQualityLevel = update.bestQualityLevel;
+          existing.lastUsedAt = update.lastUsedAt;
+          existing.updatedAt = new Date();
+          return existing;
+        }
+        const now = new Date();
+        const history: TestRecipeHistory = {
+          id: nextId("recipe"),
+          userId: create.userId,
+          productionVessel: create.productionVessel,
+          agingPlan: create.agingPlan,
+          closureType: create.closureType,
+          vineState: create.vineState,
+          timesUsed: create.timesUsed,
+          bestScore: create.bestScore,
+          bestQualityLevel: create.bestQualityLevel,
+          lastUsedAt: create.lastUsedAt,
+          createdAt: now,
+          updatedAt: now
+        };
+        state.recipeHistory.push(history);
+        return history;
+      }
     },
     gameEvent: {
       create: async ({

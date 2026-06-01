@@ -5,6 +5,7 @@ import { registerGameStateRoutes } from "./modules/game-state/routes.js";
 import { registerSessionRoutes } from "./modules/session/routes.js";
 import { registerShopRoutes } from "./modules/shop/routes.js";
 import { registerVineRoutes } from "./modules/vines/routes.js";
+import { registerWineryRoutes } from "./modules/winery/routes.js";
 import { registerPrisma, type ApiPrismaClient } from "./plugins/prisma.js";
 import { registerZodValidation } from "./plugins/zod.js";
 
@@ -30,6 +31,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   server.register(registerAnalyticsRoutes);
   server.register(registerShopRoutes);
   server.register(registerVineRoutes);
+  server.register(registerWineryRoutes);
 
   server.get("/health", async () => ({
     ok: true,

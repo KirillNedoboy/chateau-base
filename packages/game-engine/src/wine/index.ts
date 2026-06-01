@@ -8,3 +8,15 @@ export type {
   CalculateWineBatchInput,
   CoreWineBatchCalculationResult
 } from "./calculateWineBatch.js";
+export {
+  applyTutorialFirstWineRule,
+  buildWineMetadata,
+  calculateSalePrice,
+  checkOnchainEligibility,
+  createBatchHash,
+  generateSommelierVerdict,
+  generateStyleTags,
+  generateStyleVerdict,
+  generateWineLabel,
+  generateWineProfile
+} from "./fullWineOutput.js";
