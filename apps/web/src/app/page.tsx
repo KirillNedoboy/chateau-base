@@ -1,7 +1,5 @@
+import { WebShell } from "../components/WebShell";
+
 export default function HomePage() {
-  return (
-    <main>
-      <h1>Chateau Base</h1>
-    </main>
-  );
+  return <WebShell />;
 }

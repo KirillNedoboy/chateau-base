@@ -149,6 +149,12 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Plan 010 batch-hash uniqueness fix checks passed:
   - `pnpm --filter @chateau/game-engine test -- full-wine-output.test.ts`
   - `pnpm --filter @chateau/api test -- plan010-api-winery-craft.test.ts`
+- Plan 011 checks passed:
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -157,7 +163,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Prisma schema is implemented for current backend persistence.
 - NFT, token, and marketplace code were not implemented.
 - API routes are implemented through winery preview/craft; wine sell/store/share/challenge/wallet routes are still not implemented.
-- Frontend UI was not changed.
+- Frontend now has a basic mobile-first web shell connected to session start and game state.
 - No source code was changed for Base Preserve pivot; documentation and plans only.
 - Core deterministic game-engine formulas for vine state, grape yield, bottle count, raw quality score, quality thresholds, quality caps, and wine batch orchestration were implemented.
 - Shared domain files contain type contracts plus canonical domain constants only; no runtime mutation logic was added.
@@ -166,7 +172,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
 - Moment detection accepts explicit context input only; it does not read persistence or generate data.
 - Moment copy metadata is limited to moment titles/summaries and does not implement share cards, verdicts, labels, or UI.
-- Wine DNA, labels, verdicts, sale price, winery API routes, Prisma schema, and core backend persistence are now implemented through Plan 010; frontend UI, wallet/Base integration, preserve transactions, share/challenge, and sell/store APIs are still not implemented.
+- Wine DNA, labels, verdicts, sale price, winery API routes, Prisma schema, core backend persistence, and the basic web shell are now implemented through Plan 011; Phaser gameplay, wallet/Base integration, preserve transactions, share/challenge, and sell/store APIs are still not implemented.
 - Base Preserve pivot forbids onchain buy/plant/harvest/craft/sell in MVP and keeps wallet optional until first gameplay payoff.
 - Plan 006 implemented only `ChateauCellar` preserve layer; no Prisma schema, no API routes, no frontend wallet UX.
 - Plan 006 contract has no ERC-20, NFT mint, marketplace, staking, betting, withdrawals, or GRAPE balance logic.
@@ -224,6 +230,14 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `createBatchHash` includes that persisted `batchId` plus the meaningful payload and still excludes client-controlled `idempotencyKey`.
   - Two identical legitimate crafts can now create separate `WineBatch` rows with distinct ids and distinct `batchHash` values.
   - Repeated same `idempotencyKey` still returns the stored idempotent response with the same `WineBatch.id` and `batchHash`.
+- Plan 011 implementation:
+  - Web app renders a mobile-first Chateau Base shell from `apps/web/src/app/page.tsx`.
+  - `apps/web/src/lib/api.ts` provides a typed API client for session start and game state reads, configurable with `NEXT_PUBLIC_CHATEAU_API_BASE_URL`.
+  - The web shell starts a session on app load, prefers Telegram user id when available, falls back to a persisted `chateau_anonymous_session_id`, and does not require wallet connection.
+  - The shell fetches backend game state after session start and displays short user id, GRAPE balance, chateau level, tutorial status/prompt, active season, inventory summary, and a wallet-after-first-vintage placeholder.
+  - Loading session, loading game state, API error, and retry states are visible.
+  - Web API-client tests cover anonymous session reuse/creation, configured API base URL, non-2xx API errors, and network failures.
+  - No backend API, contract, wallet UX, Phaser map, shop UI, plot UI, winery UI, result screen, preserve UI, share UI, challenge UI, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
 
 ### Technical debt
 
@@ -232,4 +246,4 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 
 ### Next safe step
 
-Implement Plan 011 wine sell/store and cellar read APIs without changing preserve-on-Base transaction boundaries, frontend scope, or wallet timing.
+Implement Plan 012 Phaser map without changing backend gameplay authority, wallet timing, preserve-on-Base boundaries, or Plan 011 shell behavior.
