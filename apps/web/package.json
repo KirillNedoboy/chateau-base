@@ -12,6 +12,7 @@
   "dependencies": {
     "@chateau/shared": "workspace:*",
     "next": "16.2.6",
+    "phaser": "3.90.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwindcss": "4.3.0"

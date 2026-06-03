@@ -1,6 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  getInteractionCopy,
+  type InteractionCopy,
+  type InteractionZoneId
+} from "../game/mapConfig";
 import {
   ApiError,
   type GameStateResponse,
@@ -8,6 +14,18 @@ import {
   getOrCreateAnonymousSessionId,
   startSession
 } from "../lib/api";
+
+const PhaserMap = dynamic(
+  () => import("./game/PhaserMap").then((module) => module.PhaserMap),
+  {
+    loading: () => (
+      <section className="map-panel" aria-label="Chateau map loading">
+        <div className="map-loading">Loading chateau map</div>
+      </section>
+    ),
+    ssr: false
+  }
+);
 
 type ShellLoadState =
   | {
@@ -126,6 +144,8 @@ export function WebShell() {
     gameState: null,
     error: null
   });
+  const [activeInteraction, setActiveInteraction] =
+    useState<InteractionCopy | null>(null);
 
   const loadShell = useCallback(async () => {
     setState((current) => ({
@@ -180,6 +200,10 @@ export function WebShell() {
     return null;
   }, [state.status]);
 
+  const handleMapInteract = useCallback((zoneId: InteractionZoneId) => {
+    setActiveInteraction(getInteractionCopy(zoneId));
+  }, []);
+
   return (
     <main className="shell">
       <section className="hero-band" aria-labelledby="app-title">
@@ -192,6 +216,26 @@ export function WebShell() {
         </div>
         <StatusPill>Wallet unlocks after first vintage</StatusPill>
       </section>
+
+      <PhaserMap onInteract={handleMapInteract} />
+
+      {activeInteraction ? (
+        <section className="panel interaction-panel" role="dialog">
+          <div>
+            <p className="section-label">Interaction</p>
+            <h2>{activeInteraction.title}</h2>
+            <p className="prompt-text">{activeInteraction.body}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveInteraction(null);
+            }}
+          >
+            Close
+          </button>
+        </section>
+      ) : null}
 
       {loadingLabel ? (
         <section className="panel" aria-live="polite">

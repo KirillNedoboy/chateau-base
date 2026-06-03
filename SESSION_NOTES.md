@@ -155,10 +155,16 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 012 checks passed:
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
-- Frontend gameplay was not implemented.
+- Frontend now has a primitive Phaser map with player movement and interaction zones.
 - Wallet code was not implemented.
 - Prisma schema is implemented for current backend persistence.
 - NFT, token, and marketplace code were not implemented.
@@ -172,7 +178,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - `calculateWineBatch` returns only core calculation fields and does not return fake Wine DNA, label, verdict, sale price, moments, or NFT metadata placeholders.
 - Moment detection accepts explicit context input only; it does not read persistence or generate data.
 - Moment copy metadata is limited to moment titles/summaries and does not implement share cards, verdicts, labels, or UI.
-- Wine DNA, labels, verdicts, sale price, winery API routes, Prisma schema, core backend persistence, and the basic web shell are now implemented through Plan 011; Phaser gameplay, wallet/Base integration, preserve transactions, share/challenge, and sell/store APIs are still not implemented.
+- Wine DNA, labels, verdicts, sale price, winery API routes, Prisma schema, core backend persistence, the basic web shell, and primitive Phaser movement/zones are now implemented through Plan 012; wallet/Base integration, preserve transactions, share/challenge, and sell/store APIs are still not implemented.
 - Base Preserve pivot forbids onchain buy/plant/harvest/craft/sell in MVP and keeps wallet optional until first gameplay payoff.
 - Plan 006 implemented only `ChateauCellar` preserve layer; no Prisma schema, no API routes, no frontend wallet UX.
 - Plan 006 contract has no ERC-20, NFT mint, marketplace, staking, betting, withdrawals, or GRAPE balance logic.
@@ -238,6 +244,15 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Loading session, loading game state, API error, and retry states are visible.
   - Web API-client tests cover anonymous session reuse/creation, configured API base URL, non-2xx API errors, and network failures.
   - No backend API, contract, wallet UX, Phaser map, shop UI, plot UI, winery UI, result screen, preserve UI, share UI, challenge UI, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
+- Plan 012 implementation:
+  - Web app now depends on Phaser 3.90.0 in `apps/web`.
+  - Added a client-only Phaser map component mounted inside the Plan 011 shell.
+  - Phaser owns primitive top-down movement, WASD/arrow controls, E interaction, map drawing, player position, active-zone detection, and canvas prompt text.
+  - React owns mobile joystick/interact controls and placeholder interaction panel display.
+  - Interaction zones are Chateau, Cellar, Production, Plot 1, Plot 2, Plot 3, Shop, Market, and Ghost Sommelier.
+  - Phaser emits zone ids to React; React maps them to placeholder copy only.
+  - Added lightweight web tests for required zone ids and interaction copy mapping outside Phaser runtime.
+  - No gameplay mutation API calls, economy calculations, inventory calculations, quality/reward/price/timer/moment calculations, backend API changes, contract changes, wallet UX, preserve UI, share/challenge UI, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
 
 ### Technical debt
 
@@ -246,4 +261,4 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 
 ### Next safe step
 
-Implement Plan 012 Phaser map without changing backend gameplay authority, wallet timing, preserve-on-Base boundaries, or Plan 011 shell behavior.
+Implement Plan 013 result screen without changing backend gameplay authority, wallet timing, preserve-on-Base boundaries, Phaser economy boundaries, or share/challenge scope.

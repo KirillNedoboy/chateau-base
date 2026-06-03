@@ -93,6 +93,87 @@ h2 {
   gap: 12px;
 }
 
+.map-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(73, 54, 36, 0.16);
+  border-radius: 8px;
+  background: #e7d7b9;
+  box-shadow: 0 10px 28px rgba(50, 43, 34, 0.06);
+  margin-bottom: 12px;
+}
+
+.map-canvas-shell {
+  aspect-ratio: 3 / 2;
+  min-height: 260px;
+  width: 100%;
+}
+
+.map-canvas-shell canvas {
+  display: block;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.map-loading {
+  align-items: center;
+  aspect-ratio: 3 / 2;
+  color: #4d463d;
+  display: flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 260px;
+}
+
+.mobile-controls {
+  align-items: end;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  left: 12px;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+}
+
+.joystick-pad,
+.interact-button {
+  pointer-events: auto;
+}
+
+.joystick-pad {
+  align-items: center;
+  background: rgba(255, 250, 240, 0.72);
+  border: 1px solid rgba(36, 82, 63, 0.26);
+  border-radius: 999px;
+  display: flex;
+  height: 104px;
+  justify-content: center;
+  touch-action: none;
+  width: 104px;
+}
+
+.joystick-thumb {
+  background: #24523f;
+  border: 3px solid #fffaf0;
+  border-radius: 999px;
+  display: block;
+  height: 42px;
+  width: 42px;
+}
+
+.interact-button {
+  box-shadow: 0 8px 22px rgba(36, 82, 63, 0.18);
+  min-width: 112px;
+}
+
+.interaction-panel {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
 .panel {
   border: 1px solid rgba(73, 54, 36, 0.16);
   border-radius: 8px;
@@ -249,5 +330,10 @@ h2 {
 
   .summary-panel {
     grid-column: span 2;
+  }
+
+  .interaction-panel {
+    align-items: center;
+    grid-template-columns: 1fr auto;
   }
 }
