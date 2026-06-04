@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ApiError,
+  buyShopItem,
+  craftWine,
   getGameState,
   getOrCreateAnonymousSessionId,
+  harvestVine,
+  plantVine,
+  previewWinery,
   startSession
 } from "./api";
 
@@ -120,5 +125,159 @@ describe("web API client", () => {
       status: null,
       message: "connect ECONNREFUSED"
     });
+  });
+
+  it("posts shop buy mutations with a per-action idempotency key", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          userId: "user_1",
+          itemKey: "vine",
+          quantity: 1,
+          totalCost: 80,
+          grapeBalance: 420
+        }),
+        { status: 200 }
+      )
+    );
+
+    await buyShopItem(
+      {
+        userId: "user_1",
+        itemKey: "vine",
+        quantity: 1,
+        idempotencyKey: "buy_key_1"
+      },
+      { apiBaseUrl: "http://127.0.0.1:4000", fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:4000/api/shop/buy",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          itemKey: "vine",
+          quantity: 1,
+          idempotencyKey: "buy_key_1"
+        })
+      })
+    );
+  });
+
+  it("posts plant and harvest mutations to the existing vine endpoints", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ plotId: "plot_1" }), { status: 200 })
+    );
+
+    await plantVine(
+      {
+        userId: "user_1",
+        plotId: "plot_1",
+        idempotencyKey: "plant_key_1"
+      },
+      { fetchImpl }
+    );
+    await harvestVine(
+      {
+        userId: "user_1",
+        plotId: "plot_1",
+        idempotencyKey: "harvest_key_1"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "/api/vines/plant",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          plotId: "plot_1",
+          idempotencyKey: "plant_key_1"
+        })
+      })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "/api/vines/harvest",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          plotId: "plot_1",
+          idempotencyKey: "harvest_key_1"
+        })
+      })
+    );
+  });
+
+  it("posts winery preview without idempotency and craft with idempotency", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          canCraft: true,
+          missingResources: {},
+          requiredUnlocks: [],
+          estimatedBottleCount: 3,
+          applicableCaps: ["steel_tank", "no_aging", "screw_cap", "chateau_level_1"],
+          maxPossibleQualityLevel: "good"
+        }),
+        { status: 200 }
+      )
+    );
+
+    await previewWinery(
+      {
+        userId: "user_1",
+        grapeAmount: 7,
+        productionVessel: "steel_tank",
+        agingPlan: "no_aging",
+        closureType: "screw_cap"
+      },
+      { fetchImpl }
+    );
+    await craftWine(
+      {
+        userId: "user_1",
+        grapeAmount: 7,
+        productionVessel: "steel_tank",
+        agingPlan: "no_aging",
+        closureType: "screw_cap",
+        idempotencyKey: "craft_key_1"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "/api/winery/preview",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          grapeAmount: 7,
+          productionVessel: "steel_tank",
+          agingPlan: "no_aging",
+          closureType: "screw_cap"
+        })
+      })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "/api/winery/craft",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          grapeAmount: 7,
+          productionVessel: "steel_tank",
+          agingPlan: "no_aging",
+          closureType: "screw_cap",
+          idempotencyKey: "craft_key_1"
+        })
+      })
+    );
   });
 });

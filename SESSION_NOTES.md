@@ -161,6 +161,24 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 013 RED checks:
+  - `pnpm --filter @chateau/web test -- api.test.ts viewModels.test.ts WineResultScreen.test.ts` failed because mutation API exports and Plan 013 UI helper modules did not exist yet.
+- Plan 013 checks passed:
+  - `pnpm --filter @chateau/web test -- api.test.ts viewModels.test.ts WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 013 medium-fix RED checks:
+  - `pnpm --filter @chateau/web test -- viewModels.test.ts viewModel.test.ts` failed because plot status still inferred readiness from aggregate vine count and winery preview draft-key helpers did not exist.
+- Plan 013 medium-fix checks passed:
+  - `pnpm --filter @chateau/web test -- viewModels.test.ts viewModel.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -253,6 +271,21 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Phaser emits zone ids to React; React maps them to placeholder copy only.
   - Added lightweight web tests for required zone ids and interaction copy mapping outside Phaser runtime.
   - No gameplay mutation API calls, economy calculations, inventory calculations, quality/reward/price/timer/moment calculations, backend API changes, contract changes, wallet UX, preserve UI, share/challenge UI, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
+- Plan 013 implementation:
+  - Web API client now exposes typed clients for `POST /api/shop/buy`, `POST /api/vines/plant`, `POST /api/vines/harvest`, `POST /api/winery/preview`, and `POST /api/winery/craft`.
+  - Web shell now opens React panels from existing Phaser zone ids for Shop, Plot, Winery, Cellar, Market, Chateau, and Ghost Sommelier.
+  - Shop UI lists MVP buyable items and calls `/api/shop/buy` with a freshly generated idempotency key per click.
+  - Plot UI shows the selected plot, inventory summary, plant and harvest actions, and delegates locked/occupied/not-ready decisions to backend errors.
+  - Winery UI lets the player choose grape amount, production vessel, aging plan, and closure type, calls `/api/winery/preview`, displays backend missing resources/unlocks, and calls `/api/winery/craft` with a fresh idempotency key.
+  - Wine result UI displays the craft response fields: quality level, score, bottle count, Wine DNA, style tags, label, production choices, moments, primary moment, verdicts, sale price, and onchain eligibility indicator.
+  - Classy Flex, Degen Flex, Run It Back, Store in Cellar, Sell Wine, and Preserve on Base are placeholders only; no share/challenge, wallet, sell/store, preserve transaction, NFT, ERC-20, marketplace, staking, betting, withdrawal, backend, or contract logic was added.
+  - Successful shop, plant, harvest, and craft mutations refresh `/api/game/state` from the server before updating visible state.
+- Plan 013 medium-fix implementation:
+  - Plot UI no longer infers plot-specific plant/harvest/readiness labels from aggregate `vines.total`.
+  - Plot UI now uses neutral copy for unlocked plots: `Backend will validate plot state.`
+  - Winery previews are bound to a stable draft key made from grape amount, production vessel, aging plan, and closure type.
+  - Winery UI hides stale preview details and disables Craft until the current draft has a current successful preview.
+  - No backend, contract, wallet, preserve transaction, share/challenge, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
 
 ### Technical debt
 
@@ -261,4 +294,4 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 
 ### Next safe step
 
-Implement Plan 013 result screen without changing backend gameplay authority, wallet timing, preserve-on-Base boundaries, Phaser economy boundaries, or share/challenge scope.
+Implement Plan 014 share/challenge only after backend endpoints and scope are explicitly ready; keep wallet/preserve transaction UX out until Plan 015.

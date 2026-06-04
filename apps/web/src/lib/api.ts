@@ -1,4 +1,19 @@
-import type { Season, TutorialState } from "@chateau/shared";
+import type {
+  AgingPlanKey,
+  ClosureTypeKey,
+  GameMoment,
+  ProductionVesselKey,
+  Season,
+  ShopItemKey,
+  TutorialState,
+  VineStateKey,
+  WineLabel,
+  WineMetadata,
+  WineProfile,
+  WineQualityLevel,
+  WineStyleTag,
+  WineVerdict
+} from "@chateau/shared";
 
 export const ANONYMOUS_SESSION_STORAGE_KEY = "chateau_anonymous_session_id";
 
@@ -71,6 +86,115 @@ export type GameStateResponse = {
     baseProfileLinked: boolean;
     preservedBatchCount: number;
   };
+};
+
+export type IdempotentMutationInput = {
+  userId: string;
+  idempotencyKey: string;
+};
+
+export type ShopBuyInput = IdempotentMutationInput & {
+  itemKey: ShopItemKey;
+  quantity: number;
+};
+
+export type ShopBuyResponse = {
+  userId: string;
+  itemKey: ShopItemKey;
+  quantity: number;
+  totalCost: number;
+  grapeBalance: number;
+};
+
+export type VineMutationInput = IdempotentMutationInput & {
+  plotId: string;
+};
+
+export type PlantVineResponse = {
+  plotId: string;
+  remainingVines: number;
+  vine: {
+    id: string;
+    plotId: string;
+    harvestCount: number;
+    state: VineStateKey;
+    plantedAt: string;
+    readyAt: string;
+  };
+};
+
+export type HarvestVineResponse = {
+  plotId: string;
+  grapesAdded: number;
+  inventoryItemKey: "grape";
+  grapeInventoryQuantity: number;
+  grapeBalance: number;
+  vine: {
+    id: string;
+    plotId: string;
+    harvestCount: number;
+    state: VineStateKey;
+    plantedAt: string;
+    readyAt: string;
+    lastHarvestedAt: string | null;
+  };
+};
+
+export type WineryRecipeInput = {
+  userId: string;
+  grapeAmount: number;
+  productionVessel: ProductionVesselKey;
+  agingPlan: AgingPlanKey;
+  closureType: ClosureTypeKey;
+};
+
+export type WineryPreviewResponse = {
+  canCraft: boolean;
+  missingResources: {
+    grapes?: number;
+    screwCaps?: number;
+    corks?: number;
+  };
+  requiredUnlocks: string[];
+  estimatedBottleCount: number;
+  applicableCaps: string[];
+  maxPossibleQualityLevel: WineQualityLevel;
+};
+
+export type WineryCraftInput = WineryRecipeInput & {
+  idempotencyKey: string;
+};
+
+export type WineCraftResponse = {
+  id: string;
+  userId: string;
+  seasonId: string;
+  seasonKey: string;
+  gameConfigVersion: string;
+  grapeAmount: number;
+  bottleCount: number;
+  vineState: VineStateKey;
+  productionVessel: ProductionVesselKey;
+  agingPlan: AgingPlanKey;
+  closureType: ClosureTypeKey;
+  rawQualityScore: number;
+  rawQualityLevel: WineQualityLevel;
+  qualityScore: number;
+  qualityLevel: WineQualityLevel;
+  capApplied: boolean;
+  capCause: string | null;
+  profile: WineProfile;
+  styleTags: WineStyleTag[];
+  label: WineLabel;
+  moments: GameMoment[];
+  primaryMoment: GameMoment | null;
+  verdict: WineVerdict;
+  salePrice: number;
+  batchHash: string;
+  metadataUri: string;
+  onchainEligible: boolean;
+  preservedOnchain: false;
+  nftReadyMetadata: WineMetadata;
 };
 
 export class ApiError extends Error {
@@ -158,6 +282,12 @@ function createAnonymousSessionId(cryptoProvider: AnonymousIdCrypto): string {
   throw new ApiError("Secure browser crypto is unavailable", null);
 }
 
+export function createClientIdempotencyKey(
+  cryptoProvider: AnonymousIdCrypto = globalThis.crypto
+): string {
+  return createAnonymousSessionId(cryptoProvider);
+}
+
 export function getOrCreateAnonymousSessionId(
   storage: Pick<Storage, "getItem" | "setItem">,
   cryptoProvider: AnonymousIdCrypto = globalThis.crypto
@@ -194,6 +324,76 @@ export async function getGameState(
     `/api/game/state?userId=${encodeURIComponent(userId)}`,
     {
       method: "GET"
+    },
+    options
+  );
+}
+
+export async function buyShopItem(
+  input: ShopBuyInput,
+  options: ApiClientOptions = {}
+): Promise<ShopBuyResponse> {
+  return requestJson<ShopBuyResponse>(
+    "/api/shop/buy",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function plantVine(
+  input: VineMutationInput,
+  options: ApiClientOptions = {}
+): Promise<PlantVineResponse> {
+  return requestJson<PlantVineResponse>(
+    "/api/vines/plant",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function harvestVine(
+  input: VineMutationInput,
+  options: ApiClientOptions = {}
+): Promise<HarvestVineResponse> {
+  return requestJson<HarvestVineResponse>(
+    "/api/vines/harvest",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function previewWinery(
+  input: WineryRecipeInput,
+  options: ApiClientOptions = {}
+): Promise<WineryPreviewResponse> {
+  return requestJson<WineryPreviewResponse>(
+    "/api/winery/preview",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function craftWine(
+  input: WineryCraftInput,
+  options: ApiClientOptions = {}
+): Promise<WineCraftResponse> {
+  return requestJson<WineCraftResponse>(
+    "/api/winery/craft",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
     },
     options
   );

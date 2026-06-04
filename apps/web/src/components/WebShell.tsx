@@ -2,17 +2,34 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ShopItemKey } from "@chateau/shared";
+import { type InteractionZoneId } from "../game/mapConfig";
+import { CellarModal } from "../features/cellar/CellarModal";
+import { formatKey, getTutorialLine } from "../features/game-ui/viewModels";
+import { MarketModal } from "../features/market/MarketModal";
+import { PlotModal } from "../features/plots/PlotModal";
+import { ShareModal } from "../features/share/ShareModal";
+import { ShopModal } from "../features/shop/ShopModal";
+import { WineResultScreen } from "../features/wine-result/WineResultScreen";
+import { WineryModal } from "../features/winery/WineryModal";
 import {
-  getInteractionCopy,
-  type InteractionCopy,
-  type InteractionZoneId
-} from "../game/mapConfig";
+  createWineryDraftKey,
+  type DraftBoundWineryPreview
+} from "../features/winery/viewModel";
 import {
   ApiError,
+  buyShopItem,
+  craftWine,
+  createClientIdempotencyKey,
   type GameStateResponse,
   getGameState,
   getOrCreateAnonymousSessionId,
-  startSession
+  harvestVine,
+  plantVine,
+  previewWinery,
+  startSession,
+  type WineCraftResponse,
+  type WineryRecipeInput
 } from "../lib/api";
 
 const PhaserMap = dynamic(
@@ -43,6 +60,21 @@ type ShellLoadState =
       gameState: GameStateResponse | null;
       error: string;
     };
+
+type OperationState = {
+  busy: boolean;
+  error: string | null;
+  message: string | null;
+};
+
+type ShareMode = "classy" | "degen";
+type WineryRecipeDraft = Omit<WineryRecipeInput, "userId">;
+
+const IDLE_OPERATION: OperationState = {
+  busy: false,
+  error: null,
+  message: null
+};
 
 type TelegramWebApp = {
   initDataUnsafe?: {
@@ -75,14 +107,6 @@ function shortId(id: string): string {
   }
 
   return `${id.slice(0, 6)}...${id.slice(-4)}`;
-}
-
-function formatKey(value: string): string {
-  return value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part[0] ? `${part[0].toUpperCase()}${part.slice(1)}` : part)
-    .join(" ");
 }
 
 function tutorialPrompt(state: GameStateResponse["user"]["tutorialState"]): string {
@@ -144,8 +168,12 @@ export function WebShell() {
     gameState: null,
     error: null
   });
-  const [activeInteraction, setActiveInteraction] =
-    useState<InteractionCopy | null>(null);
+  const [activeZone, setActiveZone] = useState<InteractionZoneId | null>(null);
+  const [operation, setOperation] = useState<OperationState>(IDLE_OPERATION);
+  const [wineryPreviewResult, setWineryPreviewResult] =
+    useState<DraftBoundWineryPreview | null>(null);
+  const [wineResult, setWineResult] = useState<WineCraftResponse | null>(null);
+  const [shareMode, setShareMode] = useState<ShareMode | null>(null);
 
   const loadShell = useCallback(async () => {
     setState((current) => ({
@@ -200,9 +228,155 @@ export function WebShell() {
     return null;
   }, [state.status]);
 
-  const handleMapInteract = useCallback((zoneId: InteractionZoneId) => {
-    setActiveInteraction(getInteractionCopy(zoneId));
+  const refreshGameState = useCallback(async (userId: string) => {
+    const gameState = await getGameState(userId);
+    setState({
+      status: "ready",
+      gameState,
+      error: null
+    });
+    return gameState;
   }, []);
+
+  const runMutation = useCallback(
+    async (mutation: () => Promise<string>) => {
+      setOperation({
+        busy: true,
+        error: null,
+        message: null
+      });
+
+      try {
+        const message = await mutation();
+        setOperation({
+          busy: false,
+          error: null,
+          message
+        });
+      } catch (error) {
+        setOperation({
+          busy: false,
+          error: getErrorMessage(error),
+          message: null
+        });
+      }
+    },
+    []
+  );
+
+  const handleMapInteract = useCallback((zoneId: InteractionZoneId) => {
+    setActiveZone(zoneId);
+    setOperation(IDLE_OPERATION);
+  }, []);
+
+  const closeInteraction = useCallback(() => {
+    setActiveZone(null);
+    setOperation(IDLE_OPERATION);
+    setWineryPreviewResult(null);
+  }, []);
+
+  const currentUserId = gameState?.user.id ?? null;
+
+  const handleBuyShopItem = useCallback(
+    (itemKey: ShopItemKey) => {
+      if (!currentUserId) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const result = await buyShopItem({
+          userId: currentUserId,
+          itemKey,
+          quantity: 1,
+          idempotencyKey: createClientIdempotencyKey()
+        });
+        await refreshGameState(currentUserId);
+        return `Bought ${formatKey(result.itemKey)}. Balance: ${result.grapeBalance} GRAPE.`;
+      });
+    },
+    [currentUserId, refreshGameState, runMutation]
+  );
+
+  const handlePlantVine = useCallback(
+    (plotId: string) => {
+      if (!currentUserId) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const result = await plantVine({
+          userId: currentUserId,
+          plotId,
+          idempotencyKey: createClientIdempotencyKey()
+        });
+        await refreshGameState(currentUserId);
+        return `Planted vine. Ready at ${new Date(result.vine.readyAt).toLocaleTimeString()}.`;
+      });
+    },
+    [currentUserId, refreshGameState, runMutation]
+  );
+
+  const handleHarvestVine = useCallback(
+    (plotId: string) => {
+      if (!currentUserId) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const result = await harvestVine({
+          userId: currentUserId,
+          plotId,
+          idempotencyKey: createClientIdempotencyKey()
+        });
+        await refreshGameState(currentUserId);
+        return `Harvested ${result.grapesAdded} grapes. Inventory: ${result.grapeInventoryQuantity}.`;
+      });
+    },
+    [currentUserId, refreshGameState, runMutation]
+  );
+
+  const handlePreviewWinery = useCallback(
+    (recipe: WineryRecipeDraft) => {
+      if (!currentUserId) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const preview = await previewWinery({
+          userId: currentUserId,
+          ...recipe
+        });
+        setWineryPreviewResult({
+          draftKey: createWineryDraftKey(recipe),
+          result: preview
+        });
+        return preview.canCraft ? "Preview ready. Recipe can craft." : "Preview blocked.";
+      });
+    },
+    [currentUserId, runMutation]
+  );
+
+  const handleCraftWine = useCallback(
+    (recipe: WineryRecipeDraft) => {
+      if (!currentUserId) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const result = await craftWine({
+          userId: currentUserId,
+          ...recipe,
+          idempotencyKey: createClientIdempotencyKey()
+        });
+        setWineResult(result);
+        setActiveZone(null);
+        setWineryPreviewResult(null);
+        await refreshGameState(currentUserId);
+        return `Revealed ${formatKey(result.qualityLevel)}.`;
+      });
+    },
+    [currentUserId, refreshGameState, runMutation]
+  );
 
   return (
     <main className="shell">
@@ -219,21 +393,119 @@ export function WebShell() {
 
       <PhaserMap onInteract={handleMapInteract} />
 
-      {activeInteraction ? (
+      {wineResult ? (
+        <WineResultScreen
+          result={wineResult}
+          onClose={() => {
+            setWineResult(null);
+          }}
+          onRunItBack={() => {
+            setActiveZone("production");
+          }}
+          onSharePlaceholder={(mode) => {
+            setShareMode(mode);
+          }}
+        />
+      ) : null}
+
+      {shareMode ? (
+        <ShareModal
+          mode={shareMode}
+          onClose={() => {
+            setShareMode(null);
+          }}
+        />
+      ) : null}
+
+      {activeZone && !gameState ? (
         <section className="panel interaction-panel" role="dialog">
           <div>
             <p className="section-label">Interaction</p>
-            <h2>{activeInteraction.title}</h2>
-            <p className="prompt-text">{activeInteraction.body}</p>
+            <h2>{formatKey(activeZone)}</h2>
+            <p className="prompt-text">Game state is still loading.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveInteraction(null);
-            }}
-          >
+          <button type="button" className="secondary-button" onClick={closeInteraction}>
             Close
           </button>
+        </section>
+      ) : null}
+
+      {activeZone === "shop" && gameState ? (
+        <ShopModal
+          busy={operation.busy}
+          error={operation.error}
+          message={operation.message}
+          onBuy={handleBuyShopItem}
+          onClose={closeInteraction}
+        />
+      ) : null}
+
+      {activeZone?.startsWith("plot_") && gameState ? (
+        <PlotModal
+          plotId={activeZone}
+          gameState={gameState}
+          busy={operation.busy}
+          error={operation.error}
+          message={operation.message}
+          onPlant={() => {
+            handlePlantVine(activeZone);
+          }}
+          onHarvest={() => {
+            handleHarvestVine(activeZone);
+          }}
+          onClose={closeInteraction}
+        />
+      ) : null}
+
+      {activeZone === "production" && gameState && currentUserId ? (
+        <WineryModal
+          userId={currentUserId}
+          gameState={gameState}
+          preview={wineryPreviewResult}
+          busy={operation.busy}
+          error={operation.error}
+          message={operation.message}
+          onPreview={handlePreviewWinery}
+          onCraft={handleCraftWine}
+          onClose={closeInteraction}
+        />
+      ) : null}
+
+      {activeZone === "cellar" && gameState ? (
+        <CellarModal gameState={gameState} onClose={closeInteraction} />
+      ) : null}
+
+      {activeZone === "market" ? <MarketModal onClose={closeInteraction} /> : null}
+
+      {activeZone === "ghost_sommelier" && gameState ? (
+        <section className="panel modal-panel" role="dialog" aria-labelledby="ghost-title">
+          <div className="panel-heading">
+            <div>
+              <p className="section-label">Ghost Sommelier</p>
+              <h2 id="ghost-title">Tutorial Prompt</h2>
+            </div>
+            <button type="button" className="secondary-button" onClick={closeInteraction}>
+              Close
+            </button>
+          </div>
+          <p className="prompt-text">
+            {getTutorialLine(gameState.user.tutorialState.currentStep)}
+          </p>
+        </section>
+      ) : null}
+
+      {activeZone === "chateau" ? (
+        <section className="panel modal-panel" role="dialog" aria-labelledby="chateau-title">
+          <div className="panel-heading">
+            <div>
+              <p className="section-label">Chateau</p>
+              <h2 id="chateau-title">Profile Placeholder</h2>
+            </div>
+            <button type="button" className="secondary-button" onClick={closeInteraction}>
+              Close
+            </button>
+          </div>
+          <p className="muted">Wallet profile UX is outside Plan 013.</p>
         </section>
       ) : null}
 
