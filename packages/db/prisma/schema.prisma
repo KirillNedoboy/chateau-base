@@ -305,7 +305,7 @@ model ReferralChallenge {
   sourceBatch    WineBatch?               @relation("ChallengeSourceBatch", fields: [sourceBatchId], references: [id], onDelete: SetNull)
   onchainEvents  OnchainEvent[]
 
-  @@index([sourceShareId])
+  @@unique([sourceShareId])
   @@index([sourceBatchId])
   @@index([inviterUserId, createdAt])
   @@index([invitedUserId])

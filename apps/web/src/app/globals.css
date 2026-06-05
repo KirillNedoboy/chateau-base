@@ -252,6 +252,49 @@ h3 {
   color: #24523f;
 }
 
+.share-link {
+  align-items: center;
+  color: #24523f;
+  display: inline-flex;
+  font-weight: 800;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+
+.share-page {
+  display: grid;
+  align-content: center;
+}
+
+.share-card {
+  border: 1px solid rgba(73, 54, 36, 0.16);
+  border-radius: 8px;
+  background: #fbf5e9;
+  box-shadow: 0 10px 28px rgba(50, 43, 34, 0.08);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.button-link {
+  align-items: center;
+  background: #24523f;
+  border-radius: 8px;
+  color: #fffaf0;
+  display: inline-flex;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.secondary-link {
+  border: 1px solid rgba(36, 82, 63, 0.22);
+  background: #edf2e8;
+  color: #24523f;
+}
+
 .form-grid label {
   display: grid;
   gap: 6px;

@@ -2,10 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   buyShopItem,
+  completeChallenge,
   craftWine,
+  createShare,
   getGameState,
   getOrCreateAnonymousSessionId,
+  getShare,
   harvestVine,
+  openChallenge,
   plantVine,
   previewWinery,
   startSession
@@ -276,6 +280,118 @@ describe("web API client", () => {
           agingPlan: "no_aging",
           closureType: "screw_cap",
           idempotencyKey: "craft_key_1"
+        })
+      })
+    );
+  });
+
+  it("posts share creation with idempotency and reads share links", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          id: "share_1",
+          userId: "user_1",
+          batchId: "batch_1",
+          type: "wine_result",
+          mode: "classy",
+          title: "Chateau Base",
+          subtitle: "Grand Cru",
+          body: "Craft your first vintage",
+          imageUrl: null,
+          deeplinkUrl: "/s/share_1",
+          payload: {
+            batchId: "batch_1",
+            qualityScore: 88
+          },
+          createdAt: "2026-01-01T00:00:00.000Z"
+        }),
+        { status: 200 }
+      )
+    );
+
+    await createShare(
+      {
+        userId: "user_1",
+        batchId: "batch_1",
+        type: "wine_result",
+        mode: "classy",
+        idempotencyKey: "share_key_1"
+      },
+      { fetchImpl }
+    );
+    await getShare("share_1", { fetchImpl });
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "/api/share",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          batchId: "batch_1",
+          type: "wine_result",
+          mode: "classy",
+          idempotencyKey: "share_key_1"
+        })
+      })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "/api/s/share_1",
+      expect.objectContaining({
+        method: "GET"
+      })
+    );
+  });
+
+  it("posts challenge attribution intents without wallet or preserve payloads", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          id: "challenge_1",
+          inviterUserId: "inviter_1",
+          invitedUserId: "invited_1",
+          sourceShareId: "share_1",
+          sourceBatchId: "batch_1",
+          status: "beat_score",
+          inviterScore: 88,
+          invitedScore: 91,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          completedAt: "2026-01-01T00:01:00.000Z"
+        }),
+        { status: 200 }
+      )
+    );
+
+    await openChallenge({ shareId: "share_1" }, { fetchImpl });
+    await completeChallenge(
+      {
+        challengeId: "challenge_1",
+        invitedUserId: "invited_1",
+        invitedBatchId: "batch_2"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "/api/challenge/open",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          shareId: "share_1"
+        })
+      })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "/api/challenge/complete",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          challengeId: "challenge_1",
+          invitedUserId: "invited_1",
+          invitedBatchId: "batch_2"
         })
       })
     );

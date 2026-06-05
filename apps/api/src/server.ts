@@ -1,8 +1,10 @@
 import Fastify from "fastify";
 import type { FastifyLoggerOptions, FastifyServerOptions } from "fastify";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
+import { registerChallengeRoutes } from "./modules/challenge/routes.js";
 import { registerGameStateRoutes } from "./modules/game-state/routes.js";
 import { registerSessionRoutes } from "./modules/session/routes.js";
+import { registerShareRoutes } from "./modules/share/routes.js";
 import { registerShopRoutes } from "./modules/shop/routes.js";
 import { registerVineRoutes } from "./modules/vines/routes.js";
 import { registerWineryRoutes } from "./modules/winery/routes.js";
@@ -32,6 +34,8 @@ export function buildServer(options: BuildServerOptions = {}) {
   server.register(registerShopRoutes);
   server.register(registerVineRoutes);
   server.register(registerWineryRoutes);
+  server.register(registerShareRoutes);
+  server.register(registerChallengeRoutes);
 
   server.get("/health", async () => ({
     ok: true,

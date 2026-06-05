@@ -146,6 +146,41 @@ type TestWineBatch = {
   updatedAt: Date;
 };
 
+type TestShareObject = {
+  id: string;
+  userId: string;
+  batchId: string | null;
+  type:
+    | "WINE_RESULT"
+    | "FUMBLE"
+    | "ACHIEVEMENT"
+    | "CHALLENGE"
+    | "COWARD_METER"
+    | "CORKFATHER"
+    | "LEGENDARY";
+  mode: "CLASSY" | "DEGEN";
+  title: string;
+  subtitle: string;
+  body: string;
+  imageUrl: string | null;
+  deeplinkUrl: string;
+  payload: JsonValue;
+  createdAt: Date;
+};
+
+type TestReferralChallenge = {
+  id: string;
+  inviterUserId: string;
+  invitedUserId: string | null;
+  sourceShareId: string;
+  sourceBatchId: string | null;
+  status: "OPENED" | "STARTED" | "COMPLETED_FIRST_WINE" | "BEAT_SCORE" | "FAILED";
+  inviterScore: number | null;
+  invitedScore: number | null;
+  createdAt: Date;
+  completedAt: Date | null;
+};
+
 type TestRecipeHistory = {
   id: string;
   userId: string;
@@ -180,9 +215,14 @@ export type TestDbState = {
   inventories: TestInventory[];
   vines: TestVine[];
   wineBatches: TestWineBatch[];
+  shareObjects: TestShareObject[];
+  referralChallenges: TestReferralChallenge[];
   recipeHistory: TestRecipeHistory[];
   onchainEvents: TestOnchainEvent[];
   beforeNextInventoryUpdateMany?: (() => void) | null;
+  beforeNextGameEventCreate?: (() => void) | null;
+  beforeNextReferralChallengeCreate?: (() => void) | null;
+  beforeNextReferralChallengeUpdate?: (() => void) | null;
 };
 
 function createInitialTutorialState(): TutorialState {
@@ -241,9 +281,14 @@ export function createTestPrisma() {
     inventories: [],
     vines: [],
     wineBatches: [],
+    shareObjects: [],
+    referralChallenges: [],
     recipeHistory: [],
     onchainEvents: [],
-    beforeNextInventoryUpdateMany: null
+    beforeNextInventoryUpdateMany: null,
+    beforeNextGameEventCreate: null,
+    beforeNextReferralChallengeCreate: null,
+    beforeNextReferralChallengeUpdate: null
   };
 
   let idCounter = 0;
@@ -261,6 +306,8 @@ export function createTestPrisma() {
         inventories: structuredClone(state.inventories),
         vines: structuredClone(state.vines),
         wineBatches: structuredClone(state.wineBatches),
+        shareObjects: structuredClone(state.shareObjects),
+        referralChallenges: structuredClone(state.referralChallenges),
         recipeHistory: structuredClone(state.recipeHistory),
         onchainEvents: structuredClone(state.onchainEvents)
       };
@@ -277,6 +324,8 @@ export function createTestPrisma() {
         state.inventories = snapshot.inventories;
         state.vines = snapshot.vines;
         state.wineBatches = snapshot.wineBatches;
+        state.shareObjects = snapshot.shareObjects;
+        state.referralChallenges = snapshot.referralChallenges;
         state.recipeHistory = snapshot.recipeHistory;
         state.onchainEvents = snapshot.onchainEvents;
         throw error;
@@ -781,6 +830,8 @@ export function createTestPrisma() {
         ).length,
       findMany: async ({ where }: { where: { userId: string } }) =>
         state.wineBatches.filter((entry) => entry.userId === where.userId),
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        state.wineBatches.find((entry) => entry.id === where.id) ?? null,
       create: async ({
         data
       }: {
@@ -882,6 +933,253 @@ export function createTestPrisma() {
         };
         state.wineBatches.push(batch);
         return batch;
+      }
+    },
+    shareObject: {
+      findUnique: async ({
+        where
+      }: {
+        where: { id?: string; deeplinkUrl?: string };
+      }) => {
+        if (typeof where.id === "string") {
+          return state.shareObjects.find((entry) => entry.id === where.id) ?? null;
+        }
+        if (typeof where.deeplinkUrl === "string") {
+          return (
+            state.shareObjects.find(
+              (entry) => entry.deeplinkUrl === where.deeplinkUrl
+            ) ?? null
+          );
+        }
+        return null;
+      },
+      create: async ({
+        data
+      }: {
+        data: {
+          id?: string;
+          userId: string;
+          batchId?: string | null;
+          type:
+            | "WINE_RESULT"
+            | "FUMBLE"
+            | "ACHIEVEMENT"
+            | "CHALLENGE"
+            | "COWARD_METER"
+            | "CORKFATHER"
+            | "LEGENDARY";
+          mode: "CLASSY" | "DEGEN";
+          title: string;
+          subtitle: string;
+          body: string;
+          imageUrl?: string | null;
+          deeplinkUrl: string;
+          payload: JsonValue;
+        };
+      }) => {
+        const duplicate = state.shareObjects.find(
+          (entry) => entry.deeplinkUrl === data.deeplinkUrl
+        );
+        if (duplicate) {
+          const error = new Error("Unique constraint violation") as Error & {
+            code?: string;
+          };
+          error.code = "P2002";
+          throw error;
+        }
+        const share: TestShareObject = {
+          id: data.id ?? nextId("share"),
+          userId: data.userId,
+          batchId: data.batchId ?? null,
+          type: data.type,
+          mode: data.mode,
+          title: data.title,
+          subtitle: data.subtitle,
+          body: data.body,
+          imageUrl: data.imageUrl ?? null,
+          deeplinkUrl: data.deeplinkUrl,
+          payload: data.payload,
+          createdAt: new Date()
+        };
+        state.shareObjects.push(share);
+        return share;
+      }
+    },
+    referralChallenge: {
+      findUnique: async ({
+        where
+      }: {
+        where: { id?: string; sourceShareId?: string };
+      }) => {
+        if (typeof where.id === "string") {
+          return state.referralChallenges.find((entry) => entry.id === where.id) ?? null;
+        }
+        if (typeof where.sourceShareId === "string") {
+          return (
+            state.referralChallenges.find(
+              (entry) => entry.sourceShareId === where.sourceShareId
+            ) ?? null
+          );
+        }
+        return null;
+      },
+      findFirst: async ({
+        where
+      }: {
+        where: { sourceShareId?: string; id?: string };
+      }) =>
+        state.referralChallenges.find(
+          (entry) =>
+            (where.sourceShareId === undefined ||
+              entry.sourceShareId === where.sourceShareId) &&
+            (where.id === undefined || entry.id === where.id)
+        ) ?? null,
+      create: async ({
+        data
+      }: {
+        data: {
+          inviterUserId: string;
+          invitedUserId?: string | null;
+          sourceShareId: string;
+          sourceBatchId?: string | null;
+          status?: "OPENED" | "STARTED" | "COMPLETED_FIRST_WINE" | "BEAT_SCORE" | "FAILED";
+          inviterScore?: number | null;
+          invitedScore?: number | null;
+          completedAt?: Date | null;
+        };
+      }) => {
+        const beforeHook = state.beforeNextReferralChallengeCreate;
+        state.beforeNextReferralChallengeCreate = null;
+        beforeHook?.();
+
+        const duplicate = state.referralChallenges.find(
+          (entry) => entry.sourceShareId === data.sourceShareId
+        );
+        if (duplicate) {
+          const error = new Error("Unique constraint violation") as Error & {
+            code?: string;
+          };
+          error.code = "P2002";
+          throw error;
+        }
+
+        const challenge: TestReferralChallenge = {
+          id: nextId("challenge"),
+          inviterUserId: data.inviterUserId,
+          invitedUserId: data.invitedUserId ?? null,
+          sourceShareId: data.sourceShareId,
+          sourceBatchId: data.sourceBatchId ?? null,
+          status: data.status ?? "OPENED",
+          inviterScore: data.inviterScore ?? null,
+          invitedScore: data.invitedScore ?? null,
+          createdAt: new Date(),
+          completedAt: data.completedAt ?? null
+        };
+        state.referralChallenges.push(challenge);
+        return challenge;
+      },
+      update: async ({
+        where,
+        data
+      }: {
+        where: { id: string };
+        data: {
+          invitedUserId?: string | null;
+          status?: "OPENED" | "STARTED" | "COMPLETED_FIRST_WINE" | "BEAT_SCORE" | "FAILED";
+          inviterScore?: number | null;
+          invitedScore?: number | null;
+          completedAt?: Date | null;
+        };
+      }) => {
+        const beforeHook = state.beforeNextReferralChallengeUpdate;
+        state.beforeNextReferralChallengeUpdate = null;
+        beforeHook?.();
+
+        const challenge = state.referralChallenges.find(
+          (entry) => entry.id === where.id
+        );
+        if (!challenge) {
+          throw new Error("ReferralChallenge not found");
+        }
+        if (data.invitedUserId !== undefined) {
+          challenge.invitedUserId = data.invitedUserId;
+        }
+        if (data.status !== undefined) {
+          challenge.status = data.status;
+        }
+        if (data.inviterScore !== undefined) {
+          challenge.inviterScore = data.inviterScore;
+        }
+        if (data.invitedScore !== undefined) {
+          challenge.invitedScore = data.invitedScore;
+        }
+        if (data.completedAt !== undefined) {
+          challenge.completedAt = data.completedAt;
+        }
+        return challenge;
+      },
+      updateMany: async ({
+        where,
+        data
+      }: {
+        where: {
+          id?: string;
+          invitedUserId?: string | null;
+          status?: {
+            notIn?: Array<
+              "OPENED" | "STARTED" | "COMPLETED_FIRST_WINE" | "BEAT_SCORE" | "FAILED"
+            >;
+          };
+          OR?: Array<{ invitedUserId: string | null }>;
+        };
+        data: {
+          invitedUserId?: string | null;
+          status?: "OPENED" | "STARTED" | "COMPLETED_FIRST_WINE" | "BEAT_SCORE" | "FAILED";
+          inviterScore?: number | null;
+          invitedScore?: number | null;
+          completedAt?: Date | null;
+        };
+      }) => {
+        const beforeHook = state.beforeNextReferralChallengeUpdate;
+        state.beforeNextReferralChallengeUpdate = null;
+        beforeHook?.();
+
+        let count = 0;
+        for (const challenge of state.referralChallenges) {
+          const idMatches = where.id === undefined || challenge.id === where.id;
+          const invitedDirectMatches =
+            where.invitedUserId === undefined ||
+            challenge.invitedUserId === where.invitedUserId;
+          const statusMatches =
+            where.status?.notIn === undefined ||
+            !where.status.notIn.includes(challenge.status);
+          const invitedMatches =
+            where.OR === undefined ||
+            where.OR.some((entry) => entry.invitedUserId === challenge.invitedUserId);
+
+          if (!idMatches || !invitedDirectMatches || !statusMatches || !invitedMatches) {
+            continue;
+          }
+
+          if (data.invitedUserId !== undefined) {
+            challenge.invitedUserId = data.invitedUserId;
+          }
+          if (data.status !== undefined) {
+            challenge.status = data.status;
+          }
+          if (data.inviterScore !== undefined) {
+            challenge.inviterScore = data.inviterScore;
+          }
+          if (data.invitedScore !== undefined) {
+            challenge.invitedScore = data.invitedScore;
+          }
+          if (data.completedAt !== undefined) {
+            challenge.completedAt = data.completedAt;
+          }
+          count += 1;
+        }
+
+        return { count };
       }
     },
     recipeHistory: {
@@ -1067,6 +1365,10 @@ export function createTestPrisma() {
           payload: JsonValue;
         };
       }) => {
+        const beforeHook = state.beforeNextGameEventCreate;
+        state.beforeNextGameEventCreate = null;
+        beforeHook?.();
+
         const event: TestGameEvent = {
           id: nextId("event"),
           userId: data.userId,

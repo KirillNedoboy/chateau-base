@@ -34,6 +34,11 @@ Chateau Base is a mobile-first cozy degen winery game for Web, PWA, Telegram Min
   - `POST /api/vines/harvest`
   - `POST /api/winery/preview`
   - `POST /api/winery/craft`
+  - `POST /api/share`
+  - `GET /api/s/:shareId`
+  - `POST /api/challenge/open`
+  - `POST /api/challenge/start`
+  - `POST /api/challenge/complete`
 - Shared package now exports MVP domain type contracts from `packages/shared/src/domain`.
 - Game-engine exports `DEFAULT_GAME_CONFIG` from `packages/game-engine/src/config`.
 - Game-engine exports pure vine and wine calculation functions from `packages/game-engine/src/vine` and `packages/game-engine/src/wine`.
@@ -179,6 +184,41 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+- Plan 014 RED checks:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts` failed with 7/8 failures because share/challenge routes were not implemented.
+  - `pnpm --filter @chateau/web test -- api.test.ts` failed because share/challenge API client exports were missing.
+- Plan 014 checks passed:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts`
+  - `pnpm --filter @chateau/web test -- api.test.ts`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/api typecheck`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `pnpm --filter @chateau/web typecheck` passed again after removing the generated `.next/types` import from `apps/web/next-env.d.ts`.
+- Plan 014 review-fix RED check:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts` failed on the new regression cases for share analytics failure, duplicate challenge open conflict recovery, invited user takeover, start-after-completion regression, and complete-after-completion overwrite.
+- Plan 014 review-fix checks passed:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts`
+  - `pnpm --filter @chateau/db prisma:generate`
+  - `pnpm --filter @chateau/api typecheck`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 014 final repair RED check:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts` failed on stale-read race tests where unconditional challenge updates could regress terminal status or overwrite `invitedUserId`.
+- Plan 014 final repair checks passed:
+  - `pnpm --filter @chateau/api test -- plan014-api-share-challenge.test.ts`
+  - `pnpm --filter @chateau/db prisma:generate`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
 
 ### Scope notes
 
@@ -286,6 +326,31 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Winery previews are bound to a stable draft key made from grape amount, production vessel, aging plan, and closure type.
   - Winery UI hides stale preview details and disables Craft until the current draft has a current successful preview.
   - No backend, contract, wallet, preserve transaction, share/challenge, NFT, ERC-20, marketplace, staking, betting, or withdrawal logic was added.
+- Plan 014 implementation:
+  - Added backend `POST /api/share` with `share_create` idempotency and one persistent `ShareObject` per share action.
+  - Wine-backed share creation loads the stored `WineBatch` and ignores client-provided score, quality, sale price, and batch summary fields.
+  - Added backend `GET /api/s/:shareId` for stable public share object retrieval.
+  - Added backend `POST /api/challenge/open`, `POST /api/challenge/start`, and `POST /api/challenge/complete` for attribution only.
+  - Challenge open creates or updates attribution for the source share, start attaches `invitedUserId`, and complete compares backend batch scores to set `beat_score` or `failed`.
+  - Challenge attribution preserves inviter, invited user, source share, source batch, inviter score, and invited score without altering economy.
+  - Web API client now exposes typed share and challenge helpers.
+  - Added dynamic public `/s/[shareId]` route that fetches the backend share object, attempts challenge-open attribution, and displays a backend-provided share card.
+  - Wine result share buttons now create backend share links for the current batch with a fresh idempotency key per click.
+  - No wallet UX, preserve-on-Base transaction UI, contract call, contract logic change, NFT minting, ERC-20, marketplace, staking, betting, withdrawal, or challenge economy reward logic was added.
+- Plan 014 review-fix implementation:
+  - `ReferralChallenge.sourceShareId` is now unique in Prisma so each share has one canonical attribution record.
+  - `challenge/open` now returns the existing attribution record or recovers from a unique-create race instead of creating duplicates.
+  - `challenge/start` no longer overwrites an existing different `invitedUserId` and does not regress terminal `beat_score` or `failed` challenges.
+  - `challenge/complete` now uses backend batch scores, sets `invitedUserId` once when safe, rejects takeover before completion, and returns terminal results without mutating them.
+  - `POST /api/share` now creates `ShareObject` and `result_shared` analytics inside one transaction, so analytics failure rolls back share creation and the idempotency retry cannot duplicate the share.
+  - The in-memory API test helper now models source-share uniqueness and targeted failure hooks for these Plan 014 regression tests, while retaining its documented limitations around real database isolation.
+  - No frontend, wallet UX, preserve-on-Base transaction UI, contract call, NFT, ERC-20, marketplace, staking, betting, withdrawal, or challenge economy reward logic was added.
+- Plan 014 final repair implementation:
+  - `challenge/start` now uses guarded `updateMany` with `status NOT IN (BEAT_SCORE, FAILED)` and `invitedUserId IS NULL`, then refetches on guard miss to return terminal/idempotent rows or reject conflicts.
+  - `challenge/complete` now uses guarded `updateMany` with `status NOT IN (BEAT_SCORE, FAILED)` and `invitedUserId IS NULL OR invitedUserId = requester`, then refetches on guard miss to avoid overwriting terminal scores/status/completion time.
+  - Plan 014 API tests now simulate challenge rows changing between service read and write, covering start-after-concurrent-complete, invited-user takeover during start, stale complete after terminal result, complete takeover, and repeated complete stability.
+  - Added first Prisma migration at `packages/db/prisma/migrations/20260605174600_plan014_source_share_unique/migration.sql` to apply the `ReferralChallenge.sourceShareId` unique constraint in PostgreSQL.
+  - No wallet UX, preserve-on-Base transaction UI, ChateauCellar contract call, NFT, ERC-20, marketplace, staking, betting, withdrawal, or unrelated module refactor was added.
 
 ### Technical debt
 
@@ -294,4 +359,4 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 
 ### Next safe step
 
-Implement Plan 014 share/challenge only after backend endpoints and scope are explicitly ready; keep wallet/preserve transaction UX out until Plan 015.
+Proceed to Plan 015 only after final review confirms the Plan 014 share/challenge repair has no remaining blocker/high/medium findings.

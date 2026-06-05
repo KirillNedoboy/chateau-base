@@ -21,6 +21,7 @@ import {
   buyShopItem,
   craftWine,
   createClientIdempotencyKey,
+  createShare,
   type GameStateResponse,
   getGameState,
   getOrCreateAnonymousSessionId,
@@ -174,6 +175,7 @@ export function WebShell() {
     useState<DraftBoundWineryPreview | null>(null);
   const [wineResult, setWineResult] = useState<WineCraftResponse | null>(null);
   const [shareMode, setShareMode] = useState<ShareMode | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const loadShell = useCallback(async () => {
     setState((current) => ({
@@ -378,6 +380,27 @@ export function WebShell() {
     [currentUserId, refreshGameState, runMutation]
   );
 
+  const handleCreateShare = useCallback(
+    (mode: ShareMode) => {
+      if (!currentUserId || !wineResult) {
+        return;
+      }
+
+      void runMutation(async () => {
+        const share = await createShare({
+          userId: currentUserId,
+          batchId: wineResult.id,
+          type: "wine_result",
+          mode,
+          idempotencyKey: createClientIdempotencyKey()
+        });
+        setShareUrl(share.deeplinkUrl);
+        return "Share link created.";
+      });
+    },
+    [currentUserId, runMutation, wineResult]
+  );
+
   return (
     <main className="shell">
       <section className="hero-band" aria-labelledby="app-title">
@@ -404,15 +427,26 @@ export function WebShell() {
           }}
           onSharePlaceholder={(mode) => {
             setShareMode(mode);
+            setShareUrl(null);
+            setOperation(IDLE_OPERATION);
           }}
         />
       ) : null}
 
-      {shareMode ? (
+      {shareMode && wineResult ? (
         <ShareModal
           mode={shareMode}
+          busy={operation.busy}
+          error={operation.error}
+          message={operation.message}
+          shareUrl={shareUrl}
+          onCreateShare={() => {
+            handleCreateShare(shareMode);
+          }}
           onClose={() => {
             setShareMode(null);
+            setShareUrl(null);
+            setOperation(IDLE_OPERATION);
           }}
         />
       ) : null}

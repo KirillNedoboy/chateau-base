@@ -4,6 +4,9 @@ import type {
   GameMoment,
   ProductionVesselKey,
   Season,
+  ShareMode,
+  ShareObject,
+  ShareObjectType,
   ShopItemKey,
   TutorialState,
   VineStateKey,
@@ -14,6 +17,7 @@ import type {
   WineStyleTag,
   WineVerdict
 } from "@chateau/shared";
+import type { ReferralChallenge } from "@chateau/shared";
 
 export const ANONYMOUS_SESSION_STORAGE_KEY = "chateau_anonymous_session_id";
 
@@ -195,6 +199,28 @@ export type WineCraftResponse = {
   onchainEligible: boolean;
   preservedOnchain: false;
   nftReadyMetadata: WineMetadata;
+};
+
+export type CreateShareInput = IdempotentMutationInput & {
+  batchId: string | null;
+  type: ShareObjectType;
+  mode: ShareMode;
+  payload?: Record<string, unknown>;
+};
+
+export type ChallengeOpenInput = {
+  shareId: string;
+};
+
+export type ChallengeStartInput = {
+  challengeId: string;
+  invitedUserId: string;
+};
+
+export type ChallengeCompleteInput = {
+  challengeId: string;
+  invitedUserId: string;
+  invitedBatchId: string;
 };
 
 export class ApiError extends Error {
@@ -391,6 +417,86 @@ export async function craftWine(
 ): Promise<WineCraftResponse> {
   return requestJson<WineCraftResponse>(
     "/api/winery/craft",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function createShare(
+  input: CreateShareInput,
+  options: ApiClientOptions = {}
+): Promise<ShareObject> {
+  const body =
+    input.payload === undefined
+      ? {
+          userId: input.userId,
+          batchId: input.batchId,
+          type: input.type,
+          mode: input.mode,
+          idempotencyKey: input.idempotencyKey
+        }
+      : input;
+
+  return requestJson<ShareObject>(
+    "/api/share",
+    {
+      method: "POST",
+      body: JSON.stringify(body)
+    },
+    options
+  );
+}
+
+export async function getShare(
+  shareId: string,
+  options: ApiClientOptions = {}
+): Promise<ShareObject> {
+  return requestJson<ShareObject>(
+    `/api/s/${encodeURIComponent(shareId)}`,
+    {
+      method: "GET"
+    },
+    options
+  );
+}
+
+export async function openChallenge(
+  input: ChallengeOpenInput,
+  options: ApiClientOptions = {}
+): Promise<ReferralChallenge> {
+  return requestJson<ReferralChallenge>(
+    "/api/challenge/open",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function startChallenge(
+  input: ChallengeStartInput,
+  options: ApiClientOptions = {}
+): Promise<ReferralChallenge> {
+  return requestJson<ReferralChallenge>(
+    "/api/challenge/start",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function completeChallenge(
+  input: ChallengeCompleteInput,
+  options: ApiClientOptions = {}
+): Promise<ReferralChallenge> {
+  return requestJson<ReferralChallenge>(
+    "/api/challenge/complete",
     {
       method: "POST",
       body: JSON.stringify(input)
