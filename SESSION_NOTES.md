@@ -374,6 +374,8 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Preserve UI copy now says `Preserve submitted. Pending confirmation.` after tx submission, and the web shell no longer mutates local result state to `preservedOnchain: true` for pending submissions.
   - Added `apps/web/scripts/restore-next-env.mjs` and wired web build to restore standard `next-env.d.ts` references after Next 16 regenerates `.next/types/routes.d.ts` imports.
   - No ChateauCellar contract logic, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell gameplay mutation logic was added.
+- Plan 015 checkpoint:
+  - Added `.checkpoints/after-plan-015-preserve-flow.md` documenting completed plans, preserve architecture, contract boundaries, preserve status model, technical debt, and Plan 016 as the next safe step.
 
 ### Plan 015 validation
 
