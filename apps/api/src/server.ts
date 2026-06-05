@@ -3,10 +3,13 @@ import type { FastifyLoggerOptions, FastifyServerOptions } from "fastify";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerChallengeRoutes } from "./modules/challenge/routes.js";
 import { registerGameStateRoutes } from "./modules/game-state/routes.js";
+import { registerPreserveRoutes } from "./modules/preserve/routes.js";
+import { registerProfileRoutes } from "./modules/profile/routes.js";
 import { registerSessionRoutes } from "./modules/session/routes.js";
 import { registerShareRoutes } from "./modules/share/routes.js";
 import { registerShopRoutes } from "./modules/shop/routes.js";
 import { registerVineRoutes } from "./modules/vines/routes.js";
+import { registerWalletRoutes } from "./modules/wallet/routes.js";
 import { registerWineryRoutes } from "./modules/winery/routes.js";
 import { registerPrisma, type ApiPrismaClient } from "./plugins/prisma.js";
 import { registerZodValidation } from "./plugins/zod.js";
@@ -36,6 +39,9 @@ export function buildServer(options: BuildServerOptions = {}) {
   server.register(registerWineryRoutes);
   server.register(registerShareRoutes);
   server.register(registerChallengeRoutes);
+  server.register(registerWalletRoutes);
+  server.register(registerPreserveRoutes);
+  server.register(registerProfileRoutes);
 
   server.get("/health", async () => ({
     ok: true,

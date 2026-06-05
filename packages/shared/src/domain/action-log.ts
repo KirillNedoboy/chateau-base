@@ -12,6 +12,7 @@ export type GameActionType =
   | "challenge_start"
   | "challenge_complete"
   | "wallet_link"
+  | "preserve_confirm"
   | "analytics_event";
 
 export type GameActionLog = {

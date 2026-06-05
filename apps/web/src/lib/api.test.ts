@@ -7,10 +7,14 @@ import {
   createShare,
   getGameState,
   getOrCreateAnonymousSessionId,
+  getPublicChateauProfile,
   getShare,
   harvestVine,
+  linkWallet,
   openChallenge,
   plantVine,
+  preparePreserve,
+  confirmPreserve,
   previewWinery,
   startSession
 } from "./api";
@@ -393,6 +397,146 @@ describe("web API client", () => {
           invitedUserId: "invited_1",
           invitedBatchId: "batch_2"
         })
+      })
+    );
+  });
+
+  it("posts wallet link with Base chain id and idempotency", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          userId: "user_1",
+          walletAddress: "0xaa00000000000000000000000000000000000001",
+          chainId: 84532,
+          baseProfileLinked: true
+        }),
+        { status: 200 }
+      )
+    );
+
+    await linkWallet(
+      {
+        userId: "user_1",
+        walletAddress: "0xAa00000000000000000000000000000000000001",
+        chainId: 84532,
+        idempotencyKey: "wallet_key_1"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/wallet/link",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          walletAddress: "0xAa00000000000000000000000000000000000001",
+          chainId: 84532,
+          idempotencyKey: "wallet_key_1"
+        })
+      })
+    );
+  });
+
+  it("prepares and confirms preserve through backend endpoints", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          batchId: "batch_1",
+          contractAddress: "0x0000000000000000000000000000000000000000",
+          chainId: 84532,
+          batchHash:
+            "0x1111111111111111111111111111111111111111111111111111111111111111",
+          metadataUri: "chateau://metadata/1",
+          qualityLevel: 4,
+          primaryMoment: "almost_legendary",
+          seasonKey: "genesis_harvest",
+          score: 88
+        }),
+        { status: 200 }
+      )
+    );
+
+    await preparePreserve(
+      {
+        userId: "user_1",
+        batchId: "batch_1",
+        chainId: 84532
+      },
+      { fetchImpl }
+    );
+    await confirmPreserve(
+      {
+        userId: "user_1",
+        batchId: "batch_1",
+        chainId: 84532,
+        txHash:
+          "0x2222222222222222222222222222222222222222222222222222222222222222",
+        idempotencyKey: "preserve_key_1"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "/api/preserve/prepare",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          batchId: "batch_1",
+          chainId: 84532
+        })
+      })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "/api/preserve/confirm",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          batchId: "batch_1",
+          chainId: 84532,
+          txHash:
+            "0x2222222222222222222222222222222222222222222222222222222222222222",
+          idempotencyKey: "preserve_key_1"
+        })
+      })
+    );
+  });
+
+  it("reads public chateau profile from backend wallet route", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          walletAddress: "0xaa00000000000000000000000000000000000001",
+          shortWallet: "0xaa00...0001",
+          basedWinemaker: true,
+          genesisHarvest: {
+            totalBatches: 1,
+            premium: 0,
+            grandCru: 1,
+            legendary: 0,
+            almostLegendaryFumbles: 1
+          },
+          bestWine: null,
+          worstShame: null,
+          preservedVintagesCount: 1,
+          publicCellar: []
+        }),
+        { status: 200 }
+      )
+    );
+
+    await getPublicChateauProfile("0xAa00000000000000000000000000000000000001", {
+      fetchImpl
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/chateau/0xAa00000000000000000000000000000000000001",
+      expect.objectContaining({
+        method: "GET"
       })
     );
   });

@@ -351,12 +351,61 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Plan 014 API tests now simulate challenge rows changing between service read and write, covering start-after-concurrent-complete, invited-user takeover during start, stale complete after terminal result, complete takeover, and repeated complete stability.
   - Added first Prisma migration at `packages/db/prisma/migrations/20260605174600_plan014_source_share_unique/migration.sql` to apply the `ReferralChallenge.sourceShareId` unique constraint in PostgreSQL.
   - No wallet UX, preserve-on-Base transaction UI, ChateauCellar contract call, NFT, ERC-20, marketplace, staking, betting, withdrawal, or unrelated module refactor was added.
+- Plan 015 implementation:
+  - Added backend Base chain config for Base and Base Sepolia plus required public ChateauCellar address environment lookups for preserve preparation.
+  - Added `POST /api/wallet/link` with `wallet_link` idempotency, EVM address normalization, Base/Base Sepolia validation, `walletAddress`/`chainId`/`baseProfileLinked` persistence, and conflict handling that prevents another user from taking an already linked wallet.
+  - Added `POST /api/preserve/prepare` to return backend-approved ChateauCellar `preserveVintage` payload only for the requesting user's onchain-eligible WineBatch.
+  - Added `POST /api/preserve/confirm` with `preserve_confirm` idempotency; it re-checks eligibility, records submitted `txHash`/chain as a pending submission, keeps `WineBatch.preservedOnchain = false`, leaves `preservedAt = null`, and creates one `OnchainEvent` with status `PENDING` for duplicate-safe vintage preserve tracking.
+  - Added `GET /api/chateau/:walletAddress` public profile API with shortened wallet, Based Winemaker status, Genesis Harvest stats, best wine, worst shame, confirmed preserved count, pending preserve count, and public cellar list from backend WineBatch rows.
+  - Added Plan 015 API regression tests for wallet chain rejection, wallet storage, wallet conflict, preserve prepare eligibility, missing/zero ChateauCellar address rejection, preserve payload, pending preserve confirm event tracking, duplicate confirm idempotency, and public profile stats.
+  - Web API client now exposes wallet link, preserve prepare/confirm, and public chateau profile helpers.
+  - Web app now includes a minimal injected-wallet Base preserve panel shown only for backend `onchainEligible` WineResultScreen results; it requests accounts on click, links the wallet, prepares backend payload, sends `preserveVintage` calldata through the existing ChateauCellar ABI using `viem`, and confirms the submitted tx hash with the backend.
+  - Added `/chateau/[wallet]` public profile page that renders backend profile data.
+  - Added `@chateau/contracts` and `viem` to the web package, plus a contracts package ABI subpath export so Next can import the existing ABI directly.
+  - Added web tests for preserve action visibility, wallet/preserve/profile API request shapes, ChateauCellar calldata encoding, zero-address transaction rejection before wallet RPC, and forbidden transaction-helper scope.
+  - Extended the in-memory API Prisma helper for wallet lookup/update, preserve WineBatch updates, `OnchainEvent` uniqueness, and profile batch reads.
+  - No ChateauCellar contract logic was modified.
+  - No NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell gameplay mutation logic was added.
+- Plan 015 review-fix implementation:
+  - Removed the zero-address fallback from backend ChateauCellar config. Missing, invalid, or zero contract address env now causes `/api/preserve/prepare` to fail with a clear config error before returning a transaction payload.
+  - Frontend `sendPreserveVintageTransaction` now validates the backend-provided contract address and rejects missing, invalid, or zero addresses before calling `eth_sendTransaction`.
+  - Preserve confirm now treats tx-hash submission as pending only: it records `preserveTxHash`/`preserveChainId`, creates or reuses a `PENDING` `OnchainEvent`, and does not set `preservedOnchain` or `preservedAt`.
+  - Public profile responses now expose `preservedVintagesCount` for confirmed vintages and `pendingPreserveCount` for pending tx submissions; public cellar entries expose `preserveStatus` as `none`, `pending`, or `confirmed`.
+  - Preserve UI copy now says `Preserve submitted. Pending confirmation.` after tx submission, and the web shell no longer mutates local result state to `preservedOnchain: true` for pending submissions.
+  - Added `apps/web/scripts/restore-next-env.mjs` and wired web build to restore standard `next-env.d.ts` references after Next 16 regenerates `.next/types/routes.d.ts` imports.
+  - No ChateauCellar contract logic, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell gameplay mutation logic was added.
+
+### Plan 015 validation
+
+- `pnpm --filter @chateau/api test -- plan015-api-wallet-preserve-profile.test.ts` passed.
+- `pnpm --filter @chateau/web test -- api.test.ts WineResultScreen.test.ts chateauCellar.test.ts` passed.
+- `pnpm --filter @chateau/api test` passed.
+- `pnpm --filter @chateau/web test` passed.
+- `pnpm --filter @chateau/api typecheck` passed.
+- `pnpm --filter @chateau/web typecheck` passed.
+- `pnpm typecheck` passed.
+- `pnpm test` passed.
+- `pnpm build` initially failed because Next/Turbopack could not resolve the contracts package root `.js` re-exports from TypeScript source; after adding the ABI subpath export and importing the ABI directly, `pnpm build` passed.
+- Plan 015 review-fix RED checks:
+  - `pnpm --filter @chateau/api test -- plan015-api-wallet-preserve-profile.test.ts` failed before the fix on missing/zero contract config, pending confirm semantics, and pending profile count assertions.
+  - `pnpm --filter @chateau/web test -- chateauCellar.test.ts` failed before the fix because the zero-address payload still reached the wallet request.
+- Plan 015 review-fix checks passed:
+  - `pnpm --filter @chateau/api test -- plan015-api-wallet-preserve-profile.test.ts`
+  - `pnpm --filter @chateau/web test -- api.test.ts WineResultScreen.test.ts chateauCellar.test.ts`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build.
 
 ### Technical debt
 
 - Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
 - Introduce GrapeLot/provenance before multiple vine states materially affect quality.
+- Configure deployed ChateauCellar addresses in `CHATEAU_CELLAR_BASE_ADDRESS` and `CHATEAU_CELLAR_BASE_SEPOLIA_ADDRESS` before using preserve in production.
+- Add receipt verification/indexer follow-up if pending tx status needs to become confirmed automatically.
 
 ### Next safe step
 
-Proceed to Plan 015 only after final review confirms the Plan 014 share/challenge repair has no remaining blocker/high/medium findings.
+Add receipt/indexer verification flow if Plan 016 needs pending preserve submissions to become confirmed preserved vintages automatically.

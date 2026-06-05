@@ -419,6 +419,7 @@ export function WebShell() {
       {wineResult ? (
         <WineResultScreen
           result={wineResult}
+          userId={wineResult.userId}
           onClose={() => {
             setWineResult(null);
           }}
@@ -429,6 +430,19 @@ export function WebShell() {
             setShareMode(mode);
             setShareUrl(null);
             setOperation(IDLE_OPERATION);
+          }}
+          onPreserveSubmitted={(confirmation) => {
+            setWineResult((current) =>
+              current && current.id === wineResult.id
+                ? {
+                    ...current,
+                    preservedOnchain: confirmation.preservedOnchain,
+                    preserveTxHash: confirmation.preserveTxHash,
+                    preserveChainId: confirmation.preserveChainId,
+                    preservedAt: confirmation.preservedAt
+                  }
+                : current
+            );
           }}
         />
       ) : null}

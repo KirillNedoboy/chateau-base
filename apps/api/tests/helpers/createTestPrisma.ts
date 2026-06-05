@@ -203,6 +203,21 @@ type TestRecipeHistory = {
 type TestOnchainEvent = {
   id: string;
   userId: string;
+  walletAddress: string;
+  chainId: number;
+  contractAddress: string;
+  eventType:
+    | "VINTAGE_PRESERVED"
+    | "CHALLENGE_RESULT_RECORDED"
+    | "BASED_WINEMAKER_CLAIMED";
+  txHash: string;
+  blockNumber: bigint;
+  batchId: string | null;
+  challengeId: string | null;
+  status: "PENDING" | "CONFIRMED" | "FAILED";
+  rawPayload: JsonValue;
+  createdAt: Date;
+  confirmedAt: Date | null;
 };
 
 export type TestDbState = {
@@ -335,7 +350,11 @@ export function createTestPrisma() {
       findUnique: async ({
         where
       }: {
-        where: { id?: string; telegramUserId?: string | null };
+        where: {
+          id?: string;
+          telegramUserId?: string | null;
+          walletAddress?: string | null;
+        };
       }) => {
         if (typeof where.id === "string") {
           return state.users.find((user) => user.id === where.id) ?? null;
@@ -345,6 +364,12 @@ export function createTestPrisma() {
             state.users.find(
               (user) => user.telegramUserId === where.telegramUserId
             ) ?? null
+          );
+        }
+        if (typeof where.walletAddress === "string") {
+          return (
+            state.users.find((user) => user.walletAddress === where.walletAddress) ??
+            null
           );
         }
         return null;
@@ -410,6 +435,9 @@ export function createTestPrisma() {
                 decrement?: number;
               };
           tutorialState?: JsonValue;
+          walletAddress?: string | null;
+          chainId?: number | null;
+          baseProfileLinked?: boolean;
           updatedAt?: Date;
         };
       }) => {
@@ -420,6 +448,28 @@ export function createTestPrisma() {
         user.grapeBalance = applyNumericUpdate(user.grapeBalance, data.grapeBalance);
         if (data.tutorialState !== undefined) {
           user.tutorialState = data.tutorialState;
+        }
+        if (data.walletAddress !== undefined) {
+          const duplicate = state.users.find(
+            (entry) =>
+              entry.id !== user.id &&
+              entry.walletAddress !== null &&
+              entry.walletAddress === data.walletAddress
+          );
+          if (duplicate) {
+            const error = new Error("Unique constraint violation") as Error & {
+              code?: string;
+            };
+            error.code = "P2002";
+            throw error;
+          }
+          user.walletAddress = data.walletAddress;
+        }
+        if (data.chainId !== undefined) {
+          user.chainId = data.chainId;
+        }
+        if (data.baseProfileLinked !== undefined) {
+          user.baseProfileLinked = data.baseProfileLinked;
         }
         user.updatedAt = data.updatedAt ?? new Date();
         return user;
@@ -828,10 +878,107 @@ export function createTestPrisma() {
             (where.preservedOnchain === undefined ||
               entry.preservedOnchain === where.preservedOnchain)
         ).length,
-      findMany: async ({ where }: { where: { userId: string } }) =>
-        state.wineBatches.filter((entry) => entry.userId === where.userId),
+      findMany: async ({
+        where,
+        orderBy
+      }: {
+        where: { userId: string };
+        orderBy?: { createdAt: "asc" | "desc" };
+      }) => {
+        const entries = state.wineBatches.filter((entry) => entry.userId === where.userId);
+        if (!orderBy) {
+          return entries;
+        }
+        return entries.sort((left, right) => {
+          const leftTime = left.createdAt?.getTime?.() ?? 0;
+          const rightTime = right.createdAt?.getTime?.() ?? 0;
+          return orderBy.createdAt === "asc" ? leftTime - rightTime : rightTime - leftTime;
+        });
+      },
       findUnique: async ({ where }: { where: { id: string } }) =>
         state.wineBatches.find((entry) => entry.id === where.id) ?? null,
+      update: async ({
+        where,
+        data
+      }: {
+        where: { id: string };
+        data: {
+          preservedOnchain?: boolean;
+          preserveTxHash?: string | null;
+          preserveChainId?: number | null;
+          preservedAt?: Date | null;
+        };
+      }) => {
+        const batch = state.wineBatches.find((entry) => entry.id === where.id);
+        if (!batch) {
+          throw new Error("WineBatch not found");
+        }
+        if (data.preservedOnchain !== undefined) {
+          batch.preservedOnchain = data.preservedOnchain;
+        }
+        if (data.preserveTxHash !== undefined) {
+          batch.preserveTxHash = data.preserveTxHash;
+        }
+        if (data.preserveChainId !== undefined) {
+          batch.preserveChainId = data.preserveChainId;
+        }
+        if (data.preservedAt !== undefined) {
+          batch.preservedAt = data.preservedAt;
+        }
+        batch.updatedAt = new Date();
+        return batch;
+      },
+      updateMany: async ({
+        where,
+        data
+      }: {
+        where: {
+          id?: string;
+          userId?: string;
+          onchainEligible?: boolean;
+          preservedOnchain?: boolean;
+          preserveTxHash?: string | null;
+        };
+        data: {
+          preservedOnchain?: boolean;
+          preserveTxHash?: string | null;
+          preserveChainId?: number | null;
+          preservedAt?: Date | null;
+        };
+      }) => {
+        let count = 0;
+        for (const batch of state.wineBatches) {
+          const matches =
+            (where.id === undefined || batch.id === where.id) &&
+            (where.userId === undefined || batch.userId === where.userId) &&
+            (where.onchainEligible === undefined ||
+              batch.onchainEligible === where.onchainEligible) &&
+            (where.preservedOnchain === undefined ||
+              batch.preservedOnchain === where.preservedOnchain) &&
+            (where.preserveTxHash === undefined ||
+              batch.preserveTxHash === where.preserveTxHash);
+
+          if (!matches) {
+            continue;
+          }
+
+          if (data.preservedOnchain !== undefined) {
+            batch.preservedOnchain = data.preservedOnchain;
+          }
+          if (data.preserveTxHash !== undefined) {
+            batch.preserveTxHash = data.preserveTxHash;
+          }
+          if (data.preserveChainId !== undefined) {
+            batch.preserveChainId = data.preserveChainId;
+          }
+          if (data.preservedAt !== undefined) {
+            batch.preservedAt = data.preservedAt;
+          }
+          batch.updatedAt = new Date();
+          count += 1;
+        }
+        return { count };
+      },
       create: async ({
         data
       }: {
@@ -1352,6 +1499,83 @@ export function createTestPrisma() {
         };
         state.recipeHistory.push(history);
         return history;
+      }
+    },
+    onchainEvent: {
+      findUnique: async ({
+        where
+      }: {
+        where: {
+          id?: string;
+          chainId_txHash?: {
+            chainId: number;
+            txHash: string;
+          };
+        };
+      }) => {
+        if (typeof where.id === "string") {
+          return state.onchainEvents.find((event) => event.id === where.id) ?? null;
+        }
+        if (where.chainId_txHash) {
+          return (
+            state.onchainEvents.find(
+              (event) =>
+                event.chainId === where.chainId_txHash?.chainId &&
+                event.txHash === where.chainId_txHash.txHash
+            ) ?? null
+          );
+        }
+        return null;
+      },
+      create: async ({
+        data
+      }: {
+        data: {
+          userId: string;
+          walletAddress: string;
+          chainId: number;
+          contractAddress: string;
+          eventType:
+            | "VINTAGE_PRESERVED"
+            | "CHALLENGE_RESULT_RECORDED"
+            | "BASED_WINEMAKER_CLAIMED";
+          txHash: string;
+          blockNumber: bigint;
+          batchId?: string | null;
+          challengeId?: string | null;
+          status?: "PENDING" | "CONFIRMED" | "FAILED";
+          rawPayload: JsonValue;
+          confirmedAt?: Date | null;
+        };
+      }) => {
+        const duplicate = state.onchainEvents.find(
+          (event) => event.chainId === data.chainId && event.txHash === data.txHash
+        );
+        if (duplicate) {
+          const error = new Error("Unique constraint violation") as Error & {
+            code?: string;
+          };
+          error.code = "P2002";
+          throw error;
+        }
+        const event: TestOnchainEvent = {
+          id: nextId("onchain_event"),
+          userId: data.userId,
+          walletAddress: data.walletAddress,
+          chainId: data.chainId,
+          contractAddress: data.contractAddress,
+          eventType: data.eventType,
+          txHash: data.txHash,
+          blockNumber: data.blockNumber,
+          batchId: data.batchId ?? null,
+          challengeId: data.challengeId ?? null,
+          status: data.status ?? "PENDING",
+          rawPayload: data.rawPayload,
+          createdAt: new Date(),
+          confirmedAt: data.confirmedAt ?? null
+        };
+        state.onchainEvents.push(event);
+        return event;
       }
     },
     gameEvent: {

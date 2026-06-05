@@ -1,9 +1,9 @@
+import type { WineCraftResponse } from "../../lib/api";
 import { describe, expect, it } from "vitest";
-import { getWineResultSections } from "./viewModel";
+import { getWineResultSections, shouldShowPreserveAction } from "./viewModel";
 
 describe("Plan 013 wine result view model", () => {
-  it("exposes required result sections from the craft response", () => {
-    const sections = getWineResultSections({
+  const baseResult: WineCraftResponse = {
       id: "batch_1",
       userId: "user_1",
       seasonId: "season_1",
@@ -53,7 +53,10 @@ describe("Plan 013 wine result view model", () => {
         imageUrl: null,
         attributes: {}
       }
-    });
+    };
+
+  it("exposes required result sections from the craft response", () => {
+    const sections = getWineResultSections(baseResult);
 
     expect(sections).toContainEqual({
       title: "Wine DNA",
@@ -67,5 +70,20 @@ describe("Plan 013 wine result view model", () => {
       title: "Moments",
       values: ["First Wine"]
     });
+  });
+
+  it("shows Preserve on Base action only for backend eligible results", () => {
+    expect(
+      shouldShowPreserveAction({
+        ...baseResult,
+        onchainEligible: true
+      })
+    ).toBe(true);
+    expect(
+      shouldShowPreserveAction({
+        ...baseResult,
+        onchainEligible: false
+      })
+    ).toBe(false);
   });
 });

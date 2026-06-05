@@ -42,3 +42,9 @@ export function getWineResultSections(result: WineCraftResponse): WineResultSect
     }
   ];
 }
+
+export function shouldShowPreserveAction(
+  result: Pick<WineCraftResponse, "onchainEligible">
+): boolean {
+  return result.onchainEligible;
+}

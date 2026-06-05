@@ -197,7 +197,10 @@ export type WineCraftResponse = {
   batchHash: string;
   metadataUri: string;
   onchainEligible: boolean;
-  preservedOnchain: false;
+  preservedOnchain: boolean;
+  preserveTxHash?: string | null;
+  preserveChainId?: number | null;
+  preservedAt?: string | null;
   nftReadyMetadata: WineMetadata;
 };
 
@@ -221,6 +224,87 @@ export type ChallengeCompleteInput = {
   challengeId: string;
   invitedUserId: string;
   invitedBatchId: string;
+};
+
+export type WalletLinkInput = IdempotentMutationInput & {
+  walletAddress: string;
+  chainId: number;
+};
+
+export type WalletLinkResponse = {
+  userId: string;
+  walletAddress: string;
+  chainId: number;
+  baseProfileLinked: true;
+};
+
+export type PreservePrepareInput = {
+  userId: string;
+  batchId: string;
+  chainId: number;
+};
+
+export type PreservePrepareResponse = {
+  contractAddress: string;
+  chainId: number;
+  batchId: string;
+  batchHash: `0x${string}`;
+  metadataUri: string;
+  qualityLevel: number;
+  primaryMoment: string;
+  seasonKey: string;
+  score: number;
+};
+
+export type PreserveConfirmInput = IdempotentMutationInput & {
+  batchId: string;
+  chainId: number;
+  txHash: `0x${string}`;
+};
+
+export type PreserveConfirmResponse = {
+  batchId: string;
+  preserveStatus: "pending" | "confirmed";
+  preservedOnchain: boolean;
+  preserveTxHash: string;
+  preserveChainId: number;
+  preservedAt: string | null;
+  onchainEventId: string | null;
+};
+
+export type PublicChateauProfile = {
+  walletAddress: string;
+  shortWallet: string;
+  basedWinemaker: boolean;
+  genesisHarvest: {
+    totalBatches: number;
+    premium: number;
+    grandCru: number;
+    legendary: number;
+    almostLegendaryFumbles: number;
+  };
+  bestWine: {
+    batchId: string;
+    labelName: string;
+    qualityLevel: WineQualityLevel;
+    score: number;
+  } | null;
+  worstShame: {
+    batchId: string;
+    moment: GameMoment | string | null;
+    score: number;
+  } | null;
+  preservedVintagesCount: number;
+  pendingPreserveCount: number;
+  publicCellar: Array<{
+    batchId: string;
+    labelName: string;
+    qualityLevel: WineQualityLevel;
+    score: number;
+    preservedOnchain: boolean;
+    preserveStatus: "none" | "pending" | "confirmed";
+    primaryMoment: GameMoment | string | null;
+  }>;
 };
 
 export class ApiError extends Error {
@@ -500,6 +584,61 @@ export async function completeChallenge(
     {
       method: "POST",
       body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function linkWallet(
+  input: WalletLinkInput,
+  options: ApiClientOptions = {}
+): Promise<WalletLinkResponse> {
+  return requestJson<WalletLinkResponse>(
+    "/api/wallet/link",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function preparePreserve(
+  input: PreservePrepareInput,
+  options: ApiClientOptions = {}
+): Promise<PreservePrepareResponse> {
+  return requestJson<PreservePrepareResponse>(
+    "/api/preserve/prepare",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function confirmPreserve(
+  input: PreserveConfirmInput,
+  options: ApiClientOptions = {}
+): Promise<PreserveConfirmResponse> {
+  return requestJson<PreserveConfirmResponse>(
+    "/api/preserve/confirm",
+    {
+      method: "POST",
+      body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function getPublicChateauProfile(
+  walletAddress: string,
+  options: ApiClientOptions = {}
+): Promise<PublicChateauProfile> {
+  return requestJson<PublicChateauProfile>(
+    `/api/chateau/${encodeURIComponent(walletAddress)}`,
+    {
+      method: "GET"
     },
     options
   );

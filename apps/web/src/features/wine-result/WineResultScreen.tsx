@@ -1,19 +1,28 @@
-import type { WineCraftResponse } from "../../lib/api";
+import type { PreserveConfirmResponse, WineCraftResponse } from "../../lib/api";
+import { PreserveOnBasePanel } from "../../components/wallet/PreserveOnBasePanel";
 import { formatKey } from "../game-ui/viewModels";
-import { formatMoment, getWineResultSections } from "./viewModel";
+import {
+  formatMoment,
+  getWineResultSections,
+  shouldShowPreserveAction
+} from "./viewModel";
 
 type WineResultScreenProps = {
   result: WineCraftResponse;
+  userId: string;
   onClose: () => void;
   onRunItBack: () => void;
   onSharePlaceholder: (mode: "classy" | "degen") => void;
+  onPreserveSubmitted?: (confirmation: PreserveConfirmResponse) => void;
 };
 
 export function WineResultScreen({
   result,
+  userId,
   onClose,
   onRunItBack,
-  onSharePlaceholder
+  onSharePlaceholder,
+  onPreserveSubmitted
 }: WineResultScreenProps) {
   const sections = getWineResultSections(result);
 
@@ -69,6 +78,14 @@ export function WineResultScreen({
         </section>
       ) : null}
 
+      {shouldShowPreserveAction(result) ? (
+        <PreserveOnBasePanel
+          userId={userId}
+          result={result}
+          onPreserveSubmitted={onPreserveSubmitted}
+        />
+      ) : null}
+
       <div className="action-row">
         <button type="button" onClick={() => onSharePlaceholder("classy")}>
           Classy Flex
@@ -85,11 +102,6 @@ export function WineResultScreen({
         <button type="button" className="secondary-button">
           Sell Wine
         </button>
-        {result.onchainEligible ? (
-          <button type="button" className="secondary-button">
-            Preserve on Base
-          </button>
-        ) : null}
         <button type="button" className="secondary-button" onClick={onClose}>
           Close
         </button>
