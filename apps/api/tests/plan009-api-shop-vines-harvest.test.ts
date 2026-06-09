@@ -81,7 +81,11 @@ describe("Plan 009 shop, plant, and harvest API", () => {
 
     expect(response.statusCode).toBe(409);
     expect(state.users[0]?.grapeBalance).toBe(79);
-    expect(state.inventories).toHaveLength(0);
+    expect(
+      state.inventories.find(
+        (entry) => entry.userId === userId && entry.itemKey === "VINE"
+      )
+    ).toBeUndefined();
     await server.close();
   });
 

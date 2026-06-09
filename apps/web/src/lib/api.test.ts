@@ -16,6 +16,7 @@ import {
   preparePreserve,
   confirmPreserve,
   previewWinery,
+  sellWine,
   startSession
 } from "./api";
 
@@ -344,6 +345,42 @@ describe("web API client", () => {
       "/api/s/share_1",
       expect.objectContaining({
         method: "GET"
+      })
+    );
+  });
+
+  it("posts wine sell mutations with idempotency", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          batchId: "batch_1",
+          userId: "user_1",
+          status: "sold",
+          salePrice: 230,
+          grapeBalance: 650,
+          soldAt: "2026-01-01T00:00:00.000Z"
+        }),
+        { status: 200 }
+      )
+    );
+
+    await sellWine(
+      {
+        userId: "user_1",
+        batchId: "batch_1",
+        idempotencyKey: "sell_key_1"
+      },
+      { fetchImpl }
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/wine/batch_1/sell",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user_1",
+          idempotencyKey: "sell_key_1"
+        })
       })
     );
   });

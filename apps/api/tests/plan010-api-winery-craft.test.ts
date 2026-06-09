@@ -32,6 +32,15 @@ function seedInventory(
     | "NEW_OAK_BARREL_UNLOCK",
   quantity: number
 ) {
+  const existing = state.inventories.find(
+    (entry) => entry.userId === userId && entry.itemKey === itemKey
+  );
+  if (existing) {
+    existing.quantity = quantity;
+    existing.updatedAt = new Date();
+    return;
+  }
+
   const now = new Date();
   state.inventories.push({
     id: `inventory_${state.inventories.length + 1}`,

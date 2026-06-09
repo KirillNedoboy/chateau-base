@@ -89,6 +89,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
+  - `git diff --check`
 - Plan 007 checks passed:
   - `pnpm --filter @chateau/db prisma:generate`
   - `pnpm typecheck`
@@ -376,6 +377,27 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - No ChateauCellar contract logic, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell gameplay mutation logic was added.
 - Plan 015 checkpoint:
   - Added `.checkpoints/after-plan-015-preserve-flow.md` documenting completed plans, preserve architecture, contract boundaries, preserve status model, technical debt, and Plan 016 as the next safe step.
+- Plan 016 implementation:
+  - Added one idempotent starter Screw Cap on session start so the required first-wine smoke path can buy only one Vine, remain at 420 GRAPE after purchase, harvest 7 grapes, preview, and craft without an extra shop step.
+  - Added backend `POST /api/wine/:batchId/sell` with `wine_sell` idempotency, stored sale-price crediting, guarded `SOLD` status update, `soldAt`, and `wine_sold` analytics.
+  - Wired the web API client and Wine Result Sell button to the backend sell endpoint.
+  - Added Plan 016 API smoke coverage across anonymous session, game state, buy, plant, harvest, preview, craft, result payload, share/public share, challenge open, missing preserve env failure, pending preserve confirm, public profile pending/confirmed counts, and sell.
+  - No ChateauCellar contract logic, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell gameplay mutation logic was added.
+  - Added `.checkpoints/after-plan-016-mvp-polish.md`.
+- Plan 016 review-fix implementation:
+  - Result-screen sell UI now has explicit busy, error, success, and sold state owned by `WebShell` and rendered by `WineResultScreen`.
+  - Rapid duplicate Sell clicks are guarded by a single in-flight sell intent tracker, so repeated clicks while the request is active do not generate additional idempotency keys or sell requests.
+  - Successful sell keeps the result dialog open, shows the credited GRAPE message, and disables the Sell button as sold.
+  - Sell failures are displayed inside the result screen and leave the button available for a later retry.
+  - Backend wine sell now requires `WineBatch.status = REVEALED` in both the pre-check and guarded update, so `STORED` and `SOLD` batches cannot be sold.
+  - Added Plan 016 regression coverage for stored wine rejection, directly sold wine rejection, same-key idempotent replay, different-key resale rejection, busy/error/sold sell UI state, and duplicate in-flight sell intent guarding.
+  - No marketplace, cellar listing, wallet/preserve changes, NFT minting, ERC-20 GRAPE, staking, betting, withdrawal, or onchain sell logic was added.
+- Plan 016 sell UI race fix:
+  - Result-screen sell operation state is keyed by WineBatch id and selected for display only from the currently visible `wineResult.id`.
+  - Async sell success and error completions update the initiating batch state instead of global result state, so a stale response from batch A cannot mark batch B sold or show batch A's sale/error message on batch B.
+  - Close and Run It Back are disabled while the currently visible batch sell is in-flight; a different batch's in-flight sell does not block the current batch.
+  - Added regression coverage for stale success and stale error from batch A while batch B is visible, current-batch busy scoping, sold-state scoping, error-state scoping, and independent in-flight intents.
+  - No backend, marketplace, cellar listing, wallet/preserve, NFT, ERC-20 GRAPE, staking, betting, withdrawal, or onchain sell behavior was changed for this race fix.
 
 ### Plan 015 validation
 
@@ -401,13 +423,57 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm build`
   - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build.
 
+### Plan 016 validation
+
+- Plan 016 RED checks:
+  - `pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts` failed before the fix because new sessions had no starter Screw Cap and `/api/wine/:batchId/sell` was not registered.
+  - `pnpm --filter @chateau/web test -- api.test.ts` failed before the fix because `sellWine` was not exported by the web API client.
+- Plan 016 checks passed:
+  - `pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts`
+  - `pnpm --filter @chateau/web test -- api.test.ts`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/game-engine test`
+  - `pnpm --filter @chateau/contracts test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff -- apps/web/next-env.d.ts` produced no diff after build.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build.
+  - `git diff --check` passed.
+- Plan 016 review-fix RED checks:
+  - `pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts` failed because a `STORED` WineBatch sold successfully with HTTP 200 instead of being rejected.
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts` failed because sell UI state and in-flight sell intent helpers did not exist.
+- Plan 016 review-fix checks passed:
+  - `pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts`
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/api typecheck`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/api test`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+- Plan 016 sell UI race fix RED check:
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts` failed before implementation because `setWineSellUiStateForIntent` did not exist for batch-scoped async completion state.
+- Plan 016 sell UI race fix checks passed:
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check`
+
 ### Technical debt
 
 - Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
 - Introduce GrapeLot/provenance before multiple vine states materially affect quality.
 - Configure deployed ChateauCellar addresses in `CHATEAU_CELLAR_BASE_ADDRESS` and `CHATEAU_CELLAR_BASE_SEPOLIA_ADDRESS` before using preserve in production.
 - Add receipt verification/indexer follow-up if pending tx status needs to become confirmed automatically.
+- Improve `/api/game/state` with per-plot occupancy/readiness before further plot UI polish.
+- Add a real market/cellar wine listing before treating Market as a complete sell workflow.
 
 ### Next safe step
 
-Add receipt/indexer verification flow if Plan 016 needs pending preserve submissions to become confirmed preserved vintages automatically.
+Plan 017 MVP hardening: DB-backed smoke/integration coverage, per-plot readiness state, and preserve receipt/indexer verification design.

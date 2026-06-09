@@ -176,6 +176,21 @@ export const registerSessionRoutes: FastifyPluginAsync = async (server) => {
       }
     });
 
+    await server.prisma.inventory.upsert({
+      where: {
+        userId_itemKey: {
+          userId: user.id,
+          itemKey: "SCREW_CAP"
+        }
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        itemKey: "SCREW_CAP",
+        quantity: 1
+      }
+    });
+
     const activeSeason = await server.prisma.season.findFirst({
       where: { isActive: true },
       orderBy: { startsAt: "desc" }

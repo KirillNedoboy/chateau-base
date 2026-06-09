@@ -6,6 +6,39 @@ export type WineResultSection = {
   values: string[];
 };
 
+export type WineSellUiState = {
+  busy: boolean;
+  error: string | null;
+  message: string | null;
+  sold: boolean;
+};
+
+export type WineSellActionView = {
+  buttonDisabled: boolean;
+  buttonLabel: string;
+  error: string | null;
+  message: string | null;
+  resultActionsDisabled: boolean;
+};
+
+export type SellWineIntent = {
+  batchId: string;
+  idempotencyKey: string;
+};
+
+export type SellWineIntentTracker = {
+  byBatchId: Record<string, SellWineIntent | undefined>;
+};
+
+export type WineSellUiStateByBatch = Record<string, WineSellUiState | undefined>;
+
+export const IDLE_WINE_SELL_UI_STATE: WineSellUiState = {
+  busy: false,
+  error: null,
+  message: null,
+  sold: false
+};
+
 function formatProfileEntry(key: string, value: number): string {
   return `${formatKey(key)} ${value}`;
 }
@@ -47,4 +80,80 @@ export function shouldShowPreserveAction(
   result: Pick<WineCraftResponse, "onchainEligible">
 ): boolean {
   return result.onchainEligible;
+}
+
+export function getWineSellActionView(state: WineSellUiState): WineSellActionView {
+  return {
+    buttonDisabled: state.busy || state.sold,
+    buttonLabel: state.sold ? "Sold" : state.busy ? "Selling..." : "Sell Wine",
+    error: state.error,
+    message: state.message,
+    resultActionsDisabled: state.busy
+  };
+}
+
+export function getWineSellUiStateForBatch(
+  stateByBatch: WineSellUiStateByBatch,
+  batchId: string
+): WineSellUiState {
+  return stateByBatch[batchId] ?? IDLE_WINE_SELL_UI_STATE;
+}
+
+export function getVisibleWineSellUiState(
+  stateByBatch: WineSellUiStateByBatch,
+  visibleBatchId: string | null
+): WineSellUiState {
+  if (!visibleBatchId) {
+    return IDLE_WINE_SELL_UI_STATE;
+  }
+
+  return getWineSellUiStateForBatch(stateByBatch, visibleBatchId);
+}
+
+export function setWineSellUiStateForBatch(
+  stateByBatch: WineSellUiStateByBatch,
+  batchId: string,
+  state: WineSellUiState
+): WineSellUiStateByBatch {
+  return {
+    ...stateByBatch,
+    [batchId]: state
+  };
+}
+
+export function setWineSellUiStateForIntent(
+  stateByBatch: WineSellUiStateByBatch,
+  intent: SellWineIntent,
+  state: WineSellUiState
+): WineSellUiStateByBatch {
+  return setWineSellUiStateForBatch(stateByBatch, intent.batchId, state);
+}
+
+export function claimSellWineIntent(
+  tracker: SellWineIntentTracker,
+  batchId: string,
+  createIdempotencyKey: () => string
+): SellWineIntent | null {
+  if (tracker.byBatchId[batchId] !== undefined) {
+    return null;
+  }
+
+  const intent = {
+    batchId,
+    idempotencyKey: createIdempotencyKey()
+  };
+  tracker.byBatchId[batchId] = intent;
+  return intent;
+}
+
+export function releaseSellWineIntent(
+  tracker: SellWineIntentTracker,
+  intent: SellWineIntent
+): void {
+  if (
+    tracker.byBatchId[intent.batchId]?.batchId === intent.batchId &&
+    tracker.byBatchId[intent.batchId]?.idempotencyKey === intent.idempotencyKey
+  ) {
+    delete tracker.byBatchId[intent.batchId];
+  }
 }

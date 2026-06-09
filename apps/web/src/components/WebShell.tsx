@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ShopItemKey } from "@chateau/shared";
 import { type InteractionZoneId } from "../game/mapConfig";
 import { CellarModal } from "../features/cellar/CellarModal";
@@ -11,6 +11,14 @@ import { PlotModal } from "../features/plots/PlotModal";
 import { ShareModal } from "../features/share/ShareModal";
 import { ShopModal } from "../features/shop/ShopModal";
 import { WineResultScreen } from "../features/wine-result/WineResultScreen";
+import {
+  claimSellWineIntent,
+  getVisibleWineSellUiState,
+  releaseSellWineIntent,
+  setWineSellUiStateForIntent,
+  type SellWineIntentTracker,
+  type WineSellUiStateByBatch
+} from "../features/wine-result/viewModel";
 import { WineryModal } from "../features/winery/WineryModal";
 import {
   createWineryDraftKey,
@@ -28,6 +36,7 @@ import {
   harvestVine,
   plantVine,
   previewWinery,
+  sellWine,
   startSession,
   type WineCraftResponse,
   type WineryRecipeInput
@@ -174,8 +183,11 @@ export function WebShell() {
   const [wineryPreviewResult, setWineryPreviewResult] =
     useState<DraftBoundWineryPreview | null>(null);
   const [wineResult, setWineResult] = useState<WineCraftResponse | null>(null);
+  const [sellOperationsByBatch, setSellOperationsByBatch] =
+    useState<WineSellUiStateByBatch>({});
   const [shareMode, setShareMode] = useState<ShareMode | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const sellIntentTracker = useRef<SellWineIntentTracker>({ byBatchId: {} });
 
   const loadShell = useCallback(async () => {
     setState((current) => ({
@@ -278,6 +290,10 @@ export function WebShell() {
   }, []);
 
   const currentUserId = gameState?.user.id ?? null;
+  const currentSellOperation = getVisibleWineSellUiState(
+    sellOperationsByBatch,
+    wineResult?.id ?? null
+  );
 
   const handleBuyShopItem = useCallback(
     (itemKey: ShopItemKey) => {
@@ -401,6 +417,63 @@ export function WebShell() {
     [currentUserId, runMutation, wineResult]
   );
 
+  const handleSellWine = useCallback(() => {
+    if (!currentUserId || !wineResult) {
+      return;
+    }
+    if (currentSellOperation.busy || currentSellOperation.sold) {
+      return;
+    }
+
+    const intent = claimSellWineIntent(
+      sellIntentTracker.current,
+      wineResult.id,
+      createClientIdempotencyKey
+    );
+    if (!intent) {
+      return;
+    }
+
+    setSellOperationsByBatch((current) =>
+      setWineSellUiStateForIntent(current, intent, {
+        busy: true,
+        error: null,
+        message: null,
+        sold: false
+      })
+    );
+
+    void (async () => {
+      try {
+        const result = await sellWine({
+          userId: currentUserId,
+          batchId: intent.batchId,
+          idempotencyKey: intent.idempotencyKey
+        });
+        await refreshGameState(currentUserId);
+        setSellOperationsByBatch((current) =>
+          setWineSellUiStateForIntent(current, intent, {
+            busy: false,
+            error: null,
+            message: `Sold wine for ${result.salePrice} GRAPE. Balance: ${result.grapeBalance}.`,
+            sold: true
+          })
+        );
+      } catch (error) {
+        setSellOperationsByBatch((current) =>
+          setWineSellUiStateForIntent(current, intent, {
+            busy: false,
+            error: getErrorMessage(error),
+            message: null,
+            sold: false
+          })
+        );
+      } finally {
+        releaseSellWineIntent(sellIntentTracker.current, intent);
+      }
+    })();
+  }, [currentSellOperation.busy, currentSellOperation.sold, currentUserId, refreshGameState, wineResult]);
+
   return (
     <main className="shell">
       <section className="hero-band" aria-labelledby="app-title">
@@ -420,12 +493,20 @@ export function WebShell() {
         <WineResultScreen
           result={wineResult}
           userId={wineResult.userId}
+          sellState={currentSellOperation}
           onClose={() => {
+            if (currentSellOperation.busy) {
+              return;
+            }
             setWineResult(null);
           }}
           onRunItBack={() => {
+            if (currentSellOperation.busy) {
+              return;
+            }
             setActiveZone("production");
           }}
+          onSell={handleSellWine}
           onSharePlaceholder={(mode) => {
             setShareMode(mode);
             setShareUrl(null);

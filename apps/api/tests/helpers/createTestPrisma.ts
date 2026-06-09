@@ -907,6 +907,9 @@ export function createTestPrisma() {
           preserveTxHash?: string | null;
           preserveChainId?: number | null;
           preservedAt?: Date | null;
+          status?: "REVEALED" | "STORED" | "SOLD";
+          soldAt?: Date | null;
+          storedAt?: Date | null;
         };
       }) => {
         const batch = state.wineBatches.find((entry) => entry.id === where.id);
@@ -925,6 +928,15 @@ export function createTestPrisma() {
         if (data.preservedAt !== undefined) {
           batch.preservedAt = data.preservedAt;
         }
+        if (data.status !== undefined) {
+          batch.status = data.status;
+        }
+        if (data.soldAt !== undefined) {
+          batch.soldAt = data.soldAt;
+        }
+        if (data.storedAt !== undefined) {
+          batch.storedAt = data.storedAt;
+        }
         batch.updatedAt = new Date();
         return batch;
       },
@@ -938,16 +950,32 @@ export function createTestPrisma() {
           onchainEligible?: boolean;
           preservedOnchain?: boolean;
           preserveTxHash?: string | null;
+          status?:
+            | "REVEALED"
+            | "STORED"
+            | "SOLD"
+            | {
+                not?: "REVEALED" | "STORED" | "SOLD";
+              };
         };
         data: {
           preservedOnchain?: boolean;
           preserveTxHash?: string | null;
           preserveChainId?: number | null;
           preservedAt?: Date | null;
+          status?: "REVEALED" | "STORED" | "SOLD";
+          soldAt?: Date | null;
+          storedAt?: Date | null;
         };
       }) => {
         let count = 0;
         for (const batch of state.wineBatches) {
+          const statusMatches =
+            where.status === undefined
+              ? true
+              : typeof where.status === "string"
+                ? batch.status === where.status
+                : where.status.not === undefined || batch.status !== where.status.not;
           const matches =
             (where.id === undefined || batch.id === where.id) &&
             (where.userId === undefined || batch.userId === where.userId) &&
@@ -956,7 +984,8 @@ export function createTestPrisma() {
             (where.preservedOnchain === undefined ||
               batch.preservedOnchain === where.preservedOnchain) &&
             (where.preserveTxHash === undefined ||
-              batch.preserveTxHash === where.preserveTxHash);
+              batch.preserveTxHash === where.preserveTxHash) &&
+            statusMatches;
 
           if (!matches) {
             continue;
@@ -973,6 +1002,15 @@ export function createTestPrisma() {
           }
           if (data.preservedAt !== undefined) {
             batch.preservedAt = data.preservedAt;
+          }
+          if (data.status !== undefined) {
+            batch.status = data.status;
+          }
+          if (data.soldAt !== undefined) {
+            batch.soldAt = data.soldAt;
+          }
+          if (data.storedAt !== undefined) {
+            batch.storedAt = data.storedAt;
           }
           batch.updatedAt = new Date();
           count += 1;

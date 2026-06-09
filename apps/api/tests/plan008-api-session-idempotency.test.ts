@@ -300,7 +300,41 @@ function createTestPrisma() {
       findMany: async ({ where }: { where: { userId: string } }) =>
         state.inventories
           .filter((entry) => entry.userId === where.userId)
-          .map(({ itemKey, quantity }) => ({ itemKey, quantity }))
+          .map(({ itemKey, quantity }) => ({ itemKey, quantity })),
+      upsert: async ({
+        where,
+        create
+      }: {
+        where: {
+          userId_itemKey: {
+            userId: string;
+            itemKey: string;
+          };
+        };
+        update: Record<string, never>;
+        create: {
+          userId: string;
+          itemKey: string;
+          quantity: number;
+        };
+      }) => {
+        const existing = state.inventories.find(
+          (entry) =>
+            entry.userId === where.userId_itemKey.userId &&
+            entry.itemKey === where.userId_itemKey.itemKey
+        );
+        if (existing) {
+          return existing;
+        }
+        const created: TestInventory = {
+          id: nextId("inventory"),
+          userId: create.userId,
+          itemKey: create.itemKey,
+          quantity: create.quantity
+        };
+        state.inventories.push(created);
+        return created;
+      }
     },
     vine: {
       count: async ({ where }: { where: { userId: string } }) =>

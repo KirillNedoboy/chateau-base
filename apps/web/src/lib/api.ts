@@ -204,6 +204,19 @@ export type WineCraftResponse = {
   nftReadyMetadata: WineMetadata;
 };
 
+export type WineSellInput = IdempotentMutationInput & {
+  batchId: string;
+};
+
+export type WineSellResponse = {
+  batchId: string;
+  userId: string;
+  status: "sold";
+  salePrice: number;
+  grapeBalance: number;
+  soldAt: string;
+};
+
 export type CreateShareInput = IdempotentMutationInput & {
   batchId: string | null;
   type: ShareObjectType;
@@ -504,6 +517,23 @@ export async function craftWine(
     {
       method: "POST",
       body: JSON.stringify(input)
+    },
+    options
+  );
+}
+
+export async function sellWine(
+  input: WineSellInput,
+  options: ApiClientOptions = {}
+): Promise<WineSellResponse> {
+  return requestJson<WineSellResponse>(
+    `/api/wine/${encodeURIComponent(input.batchId)}/sell`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey
+      })
     },
     options
   );

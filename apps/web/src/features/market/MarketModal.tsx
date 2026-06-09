@@ -14,7 +14,9 @@ export function MarketModal({ onClose }: MarketModalProps) {
           Close
         </button>
       </div>
-      <p className="muted">Sell endpoints are not ready, so this remains a placeholder.</p>
+      <p className="muted">
+        Sell from a revealed wine result. Market wine listing is still a follow-up.
+      </p>
     </section>
   );
 }

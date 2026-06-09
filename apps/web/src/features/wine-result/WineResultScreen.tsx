@@ -3,15 +3,19 @@ import { PreserveOnBasePanel } from "../../components/wallet/PreserveOnBasePanel
 import { formatKey } from "../game-ui/viewModels";
 import {
   formatMoment,
+  getWineSellActionView,
   getWineResultSections,
-  shouldShowPreserveAction
+  shouldShowPreserveAction,
+  type WineSellUiState
 } from "./viewModel";
 
 type WineResultScreenProps = {
   result: WineCraftResponse;
   userId: string;
+  sellState: WineSellUiState;
   onClose: () => void;
   onRunItBack: () => void;
+  onSell: () => void;
   onSharePlaceholder: (mode: "classy" | "degen") => void;
   onPreserveSubmitted?: (confirmation: PreserveConfirmResponse) => void;
 };
@@ -19,12 +23,15 @@ type WineResultScreenProps = {
 export function WineResultScreen({
   result,
   userId,
+  sellState,
   onClose,
   onRunItBack,
+  onSell,
   onSharePlaceholder,
   onPreserveSubmitted
 }: WineResultScreenProps) {
   const sections = getWineResultSections(result);
+  const sellAction = getWineSellActionView(sellState);
 
   return (
     <section className="result-screen" role="dialog" aria-labelledby="wine-result-title">
@@ -86,6 +93,22 @@ export function WineResultScreen({
         />
       ) : null}
 
+      {sellAction.message || sellAction.error ? (
+        <section className="mini-panel">
+          <p className="section-label">Market</p>
+          {sellAction.message ? (
+            <p className="muted" role="status">
+              {sellAction.message}
+            </p>
+          ) : null}
+          {sellAction.error ? (
+            <p className="error-text" role="alert">
+              {sellAction.error}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="action-row">
         <button type="button" onClick={() => onSharePlaceholder("classy")}>
           Classy Flex
@@ -93,16 +116,31 @@ export function WineResultScreen({
         <button type="button" onClick={() => onSharePlaceholder("degen")}>
           Degen Flex
         </button>
-        <button type="button" onClick={onRunItBack}>
+        <button
+          type="button"
+          onClick={onRunItBack}
+          disabled={sellAction.resultActionsDisabled}
+        >
           Run It Back
         </button>
         <button type="button" className="secondary-button">
           Store in Cellar
         </button>
-        <button type="button" className="secondary-button">
-          Sell Wine
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={onSell}
+          disabled={sellAction.buttonDisabled}
+          aria-busy={sellState.busy}
+        >
+          {sellAction.buttonLabel}
         </button>
-        <button type="button" className="secondary-button" onClick={onClose}>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={onClose}
+          disabled={sellAction.resultActionsDisabled}
+        >
           Close
         </button>
       </div>
