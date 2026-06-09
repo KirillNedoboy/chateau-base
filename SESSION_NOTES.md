@@ -398,6 +398,14 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - Close and Run It Back are disabled while the currently visible batch sell is in-flight; a different batch's in-flight sell does not block the current batch.
   - Added regression coverage for stale success and stale error from batch A while batch B is visible, current-batch busy scoping, sold-state scoping, error-state scoping, and independent in-flight intents.
   - No backend, marketplace, cellar listing, wallet/preserve, NFT, ERC-20 GRAPE, staking, betting, withdrawal, or onchain sell behavior was changed for this race fix.
+- Release setup hardening:
+  - Replaced the pre-release partial Prisma migration with a clean baseline migration at `packages/db/prisma/migrations/20260609000000_initial_schema/migration.sql`.
+  - The baseline migration was generated from the current Prisma schema and includes current enums, tables, indexes, foreign keys, and `ReferralChallenge.sourceShareId` uniqueness.
+  - `README.md` now documents real local setup, env, Prisma generate/migrate/seed, API/web run commands, contract tests, all checks, MVP smoke checklist, preserve-on-Base behavior, and known technical debt.
+  - README env setup now calls out that filtered workspace scripts do not all auto-load the root `.env`; local developers must export env vars or create package-local env files for Prisma/Next/API as appropriate.
+  - `.env.example` now documents `NEXT_PUBLIC_CHATEAU_API_BASE_URL`, `CHATEAU_CELLAR_BASE_ADDRESS`, `CHATEAU_CELLAR_BASE_SEPOLIA_ADDRESS`, and `NEXT_PUBLIC_REOWN_PROJECT_ID` with safe non-secret placeholders.
+  - Fresh setup docs explicitly require `pnpm --filter @chateau/db prisma:seed` because the craft flow requires an active Genesis Harvest season.
+  - No app logic, gameplay features, contract behavior, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain gameplay mutation behavior was changed.
 
 ### Plan 015 validation
 
@@ -465,6 +473,18 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
   - `pnpm build`
   - `git diff --check`
 
+### Release setup hardening validation
+
+- `pnpm --filter @chateau/db exec prisma validate --schema prisma/schema.prisma` passed with the documented sample `DATABASE_URL` injected for the command.
+- `pnpm --filter @chateau/db prisma:generate` passed with the documented sample `DATABASE_URL` injected for the command.
+- `pnpm typecheck` passed.
+- `pnpm test` passed.
+- `pnpm build` passed.
+- Migration SQL exists at `packages/db/prisma/migrations/20260609000000_initial_schema/migration.sql`, is non-empty, and contains current core tables plus `ReferralChallenge_sourceShareId_key`.
+- `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build.
+- `git diff --check` passed.
+- Known warning remains: Prisma 6.19 emits the `package.json#prisma` deprecation warning; this is tracked as low-risk technical debt.
+
 ### Technical debt
 
 - Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
@@ -473,6 +493,7 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Add receipt verification/indexer follow-up if pending tx status needs to become confirmed automatically.
 - Improve `/api/game/state` with per-plot occupancy/readiness before further plot UI polish.
 - Add a real market/cellar wine listing before treating Market as a complete sell workflow.
+- Move Prisma seed configuration from deprecated `package.json#prisma` to `prisma.config.ts` before Prisma 7.
 
 ### Next safe step
 
