@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 import type { FastifyLoggerOptions, FastifyServerOptions } from "fastify";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerChallengeRoutes } from "./modules/challenge/routes.js";
 import { registerGameStateRoutes } from "./modules/game-state/routes.js";
@@ -53,7 +55,18 @@ export function buildServer(options: BuildServerOptions = {}) {
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+export function isMainModuleUrl(
+  importMetaUrl: string,
+  argvPath = process.argv[1]
+): boolean {
+  if (!argvPath) {
+    return false;
+  }
+
+  return importMetaUrl === pathToFileURL(resolve(argvPath)).href;
+}
+
+if (isMainModuleUrl(import.meta.url)) {
   const host = process.env.API_HOST ?? "127.0.0.1";
   const port = Number(process.env.API_PORT ?? 4000);
   const server = buildServer();

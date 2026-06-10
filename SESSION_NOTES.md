@@ -485,6 +485,21 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - `git diff --check` passed.
 - Known warning remains: Prisma 6.19 emits the `package.json#prisma` deprecation warning; this is tracked as low-risk technical debt.
 
+### Release runtime smoke fix
+
+- Fresh DB runtime smoke initially exposed that `pnpm --filter @chateau/api dev` did not open `127.0.0.1:4000` on Windows/tsx because `apps/api/src/server.ts` compared `import.meta.url` to a manually built `file://${process.argv[1]}` string.
+- API entrypoint detection now compares `import.meta.url` to `pathToFileURL(resolve(process.argv[1])).href`, so the documented dev command calls `server.listen()` correctly.
+- Added `apps/api/tests/server-entrypoint.test.ts` covering Windows argv path detection and non-entrypoint rejection.
+- Fresh DB runtime smoke was rerun against an empty Docker PostgreSQL database on `127.0.0.1:55432`:
+  - `pnpm install --frozen-lockfile`
+  - local ignored `.env` copied from `.env.example` with disposable `DATABASE_URL`
+  - `pnpm --filter @chateau/db prisma:generate`
+  - `pnpm --filter @chateau/db prisma:migrate`
+  - `pnpm --filter @chateau/db prisma:seed`
+  - `pnpm --filter @chateau/api dev`
+  - `pnpm --filter @chateau/web dev` with `NEXT_PUBLIC_CHATEAU_API_BASE_URL=http://127.0.0.1:4000`
+- Runtime MVP smoke passed through HTTP: session without wallet, buy Vine, plant, harvest after tutorial readiness, preview, craft, result payload, ShareObject creation, public share load, wallet link for profile/preserve precondition, preserve prepare safe failure with missing ChateauCellar address, API profile route, and web profile route.
+
 ### Technical debt
 
 - Add DB-backed Prisma integration tests before production for transaction rollback/concurrency.
