@@ -554,3 +554,10 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 ### Next safe step
 
 Run the GitHub Actions CI workflow after pushing the branch, then address any CI-environment-only failures before staging deploy. After CI is green, choose same-origin proxy vs split-domain API CORS deployment and configure a real Base Sepolia `ChateauCellar` address only after deployment is verified.
+
+### CI node runtime fix
+
+- First GitHub Actions run `27447175270` failed at the `Install` step.
+- Root cause: workflow used Node 20.20.2, while pinned `pnpm@11.3.0` requires Node 22.13+ and attempted to import the newer `node:sqlite` built-in.
+- Minimal fix: CI workflow now uses Node 24, matching the local runtime used for successful validation.
+- README CI notes were updated from Node 20 to Node 24.

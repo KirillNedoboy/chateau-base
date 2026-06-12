@@ -197,7 +197,7 @@ pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts
 ## CI
 
 GitHub Actions runs `.github/workflows/ci.yml` on pull requests, pushes, and
-manual dispatch. CI uses Node 20, Corepack pnpm `11.3.0`, PostgreSQL 16, and
+manual dispatch. CI uses Node 24, Corepack pnpm `11.3.0`, PostgreSQL 16, and
 the same safe test env documented in `.env.example`.
 
 CI database order:
