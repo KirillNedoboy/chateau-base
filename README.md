@@ -78,6 +78,11 @@ For local split-port development, keep:
 NEXT_PUBLIC_CHATEAU_API_BASE_URL=http://127.0.0.1:4000
 ```
 
+`WEB_ORIGIN` is the API CORS allowlist. Set it to the exact browser origin of
+the web app, for example `http://localhost:3000` or
+`http://127.0.0.1:3000`. Production API startup requires `WEB_ORIGIN`; it never
+uses a wildcard origin.
+
 Preserve-on-Base addresses are required only when enabling the preserve flow:
 
 - `CHATEAU_CELLAR_BASE_ADDRESS`
@@ -98,6 +103,14 @@ pnpm --filter @chateau/db prisma:seed
 ```
 
 The seed step creates the active `Genesis Harvest` season. It is required for the craft flow because `/api/winery/craft` rejects requests when no active season exists.
+
+Use `prisma:migrate` only for local development. CI and staging must use
+`prisma migrate deploy` against the checked-in migrations:
+
+```sh
+pnpm --filter @chateau/db exec prisma migrate deploy --schema prisma/schema.prisma
+pnpm --filter @chateau/db prisma:seed
+```
 
 This repo is still pre-release. Migration history is a clean baseline for the current schema. If you created a disposable local database with an older partial migration, recreate that local database or run a local-only reset after confirming there is no data to keep. Do not reset any shared or production database.
 
@@ -133,6 +146,30 @@ http://localhost:3000
 
 The web app must have `NEXT_PUBLIC_CHATEAU_API_BASE_URL=http://127.0.0.1:4000` in local env so browser-side API calls reach Fastify instead of the Next.js dev server.
 
+## Staging Environment
+
+Minimum API staging env:
+
+```txt
+NODE_ENV=production
+DATABASE_URL=postgresql://...
+API_HOST=0.0.0.0
+API_PORT=<platform port>
+WEB_ORIGIN=https://<staging-web-origin>
+```
+
+Minimum web staging env:
+
+```txt
+NEXT_PUBLIC_APP_NAME=Chateau Base
+NEXT_PUBLIC_CHATEAU_API_BASE_URL=https://<staging-api-origin>
+```
+
+Set `CHATEAU_CELLAR_BASE_SEPOLIA_ADDRESS` only after a real, non-zero
+`ChateauCellar` deployment exists on Base Sepolia. Keep
+`CHATEAU_CELLAR_BASE_ADDRESS` unset for staging unless mainnet preserve is
+intentionally enabled.
+
 ## Run Contracts Tests
 
 ```sh
@@ -156,6 +193,28 @@ pnpm --filter @chateau/db exec prisma validate --schema prisma/schema.prisma
 pnpm --filter @chateau/db prisma:generate
 pnpm --filter @chateau/api test -- plan016-api-mvp-smoke.test.ts
 ```
+
+## CI
+
+GitHub Actions runs `.github/workflows/ci.yml` on pull requests, pushes, and
+manual dispatch. CI uses Node 20, Corepack pnpm `11.3.0`, PostgreSQL 16, and
+the same safe test env documented in `.env.example`.
+
+CI database order:
+
+```sh
+pnpm --filter @chateau/db exec prisma validate --schema prisma/schema.prisma
+pnpm --filter @chateau/db prisma:generate
+pnpm --filter @chateau/db exec prisma migrate deploy --schema prisma/schema.prisma
+pnpm --filter @chateau/db prisma:seed
+pnpm --filter @chateau/api smoke:db
+```
+
+`pnpm --filter @chateau/api smoke:db` is a DB-backed MVP smoke script using the
+real Prisma client against `DATABASE_URL`. It verifies seed state, session,
+state read, buy, plant, harvest with test-time readiness, preview, craft, share,
+wallet link, and safe preserve failure when no ChateauCellar address is
+configured. It does not bind a port; it uses Fastify injection.
 
 ## MVP Smoke Checklist
 

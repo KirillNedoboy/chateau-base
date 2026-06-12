@@ -14,6 +14,7 @@ import { registerVineRoutes } from "./modules/vines/routes.js";
 import { registerWalletRoutes } from "./modules/wallet/routes.js";
 import { registerWineRoutes } from "./modules/wine/routes.js";
 import { registerWineryRoutes } from "./modules/winery/routes.js";
+import { registerCors } from "./plugins/cors.js";
 import { registerPrisma, type ApiPrismaClient } from "./plugins/prisma.js";
 import { registerZodValidation } from "./plugins/zod.js";
 
@@ -33,6 +34,7 @@ export function buildServer(options: BuildServerOptions = {}) {
   registerPrisma(server, {
     prisma: options.prisma
   });
+  registerCors(server);
   registerZodValidation(server);
   server.register(registerSessionRoutes);
   server.register(registerGameStateRoutes);

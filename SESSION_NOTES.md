@@ -510,6 +510,47 @@ Backend decides. Base preserves selected meaningful vintages and challenge momen
 - Add a real market/cellar wine listing before treating Market as a complete sell workflow.
 - Move Prisma seed configuration from deprecated `package.json#prisma` to `prisma.config.ts` before Prisma 7.
 
+### CI/staging readiness foundations
+
+- Added GitHub Actions workflow at `.github/workflows/ci.yml`.
+- CI runs on `pull_request`, `push`, and `workflow_dispatch`.
+- CI uses Node 20, Corepack pnpm 11.3.0, PostgreSQL 16 service, `pnpm install --frozen-lockfile`, Prisma validate/generate, `prisma migrate deploy`, required Genesis Harvest seed, DB-backed API smoke, typecheck, tests, build, `git diff --check`, and a guard that fails if `apps/web/next-env.d.ts` contains `.next`.
+- Added explicit API CORS support in `apps/api/src/plugins/cors.ts`, registered before routes in `apps/api/src/server.ts`.
+- CORS allows only the configured `WEB_ORIGIN`, rejects unconfigured browser origins with HTTP 403, handles allowed preflight with HTTP 204, defaults to `http://localhost:3000` outside production when `WEB_ORIGIN` is missing, and fails clearly in production if `WEB_ORIGIN` is missing.
+- Added CORS regression coverage in `apps/api/tests/cors.test.ts`.
+- Added DB-backed smoke script at `apps/api/src/smoke/dbSmoke.ts` and `pnpm --filter @chateau/api smoke:db`.
+- DB smoke uses the real Prisma client against `DATABASE_URL` and Fastify injection, verifies active Genesis Harvest seed, walletless session start, game state, buy vine, plant, test-time harvest readiness by updating `readyAt` in the smoke database, harvest, preview, craft/result, share creation, wallet link, and safe preserve prepare failure when `CHATEAU_CELLAR_BASE_SEPOLIA_ADDRESS` is not configured.
+- README now documents CI, staging env, `WEB_ORIGIN` CORS requirements, `prisma migrate deploy` for CI/staging, mandatory seed, and the DB-backed smoke command.
+- No gameplay logic, DB schema, migration SQL, contract logic, NFT minting, ERC-20 GRAPE, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell mutation logic was added.
+
+### CI/staging readiness validation
+
+- CORS RED check passed as expected before implementation:
+  - `pnpm --filter @chateau/api test -- cors.test.ts` failed on missing allow-origin header, rejected-origin behavior, preflight handling, and production missing `WEB_ORIGIN` guard.
+- CORS GREEN check passed:
+  - `pnpm --filter @chateau/api test -- cors.test.ts`
+- `pnpm --filter @chateau/api test` passed with 8 test files and 78 tests.
+- `pnpm --filter @chateau/api typecheck` passed.
+- `pnpm --filter @chateau/db exec prisma validate --schema prisma/schema.prisma` passed with a local sample `DATABASE_URL` injected for the command.
+- `pnpm --filter @chateau/db prisma:generate` passed with a local sample `DATABASE_URL` injected for the command.
+- `pnpm typecheck` passed.
+- `pnpm test` passed.
+- `pnpm build` passed.
+- `git diff --check` passed, with only existing Git line-ending warnings on Windows.
+- `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches.
+- Local DB smoke could not be executed because Docker Desktop daemon was unavailable: Docker CLI exists, but the `dockerDesktopLinuxEngine` named pipe was missing. The CI workflow runs the same smoke script against its PostgreSQL 16 service.
+- DB smoke robustness fix:
+  - `apps/api/src/smoke/dbSmoke.ts` now wraps the full smoke path in a top-level `try/finally`.
+  - Fastify is closed if the smoke server was created.
+  - Prisma is explicitly disconnected in the top-level cleanup path even when the active Genesis Harvest seed check fails before server creation.
+  - The missing Genesis Harvest path still fails clearly with `Genesis Harvest seed is missing or inactive`.
+- DB smoke robustness validation:
+  - `pnpm --filter @chateau/api smoke:db` was attempted with a local sample `DATABASE_URL`, but local PostgreSQL was not reachable at `127.0.0.1:5432`; the command exited with Prisma `Can't reach database server`, confirming the local environment blocker remains.
+  - `pnpm --filter @chateau/api typecheck` passed.
+  - `pnpm --filter @chateau/api test` passed with 8 test files and 78 tests.
+  - `pnpm typecheck` passed.
+  - `pnpm test` passed.
+
 ### Next safe step
 
-Plan 017 MVP hardening: DB-backed smoke/integration coverage, per-plot readiness state, and preserve receipt/indexer verification design.
+Run the GitHub Actions CI workflow after pushing the branch, then address any CI-environment-only failures before staging deploy. After CI is green, choose same-origin proxy vs split-domain API CORS deployment and configure a real Base Sepolia `ChateauCellar` address only after deployment is verified.

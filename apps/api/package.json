@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json --outDir dist --noEmit false",
     "dev": "tsx watch src/server.ts",
     "lint": "tsc --noEmit",
+    "smoke:db": "tsx src/smoke/dbSmoke.ts",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
