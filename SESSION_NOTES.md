@@ -561,3 +561,6 @@ Run the GitHub Actions CI workflow after pushing the branch, then address any CI
 - Root cause: workflow used Node 20.20.2, while pinned `pnpm@11.3.0` requires Node 22.13+ and attempted to import the newer `node:sqlite` built-in.
 - Minimal fix: CI workflow now uses Node 24, matching the local runtime used for successful validation.
 - README CI notes were updated from Node 20 to Node 24.
+- Second GitHub Actions run `27447255677` passed install, Prisma validate/generate, migrate deploy, seed, DB smoke, and typecheck, then failed during `pnpm test` in `@chateau/web` API client unit tests.
+- Root cause: job-level `NEXT_PUBLIC_CHATEAU_API_BASE_URL` made web unit-test fetch URLs absolute (`http://127.0.0.1:4000/...`) while the existing local tests expect relative API paths.
+- Minimal fix: the CI `Test` step now clears `NEXT_PUBLIC_CHATEAU_API_BASE_URL` so unit tests match local hermetic behavior; build keeps the staging-style API base URL from job env.

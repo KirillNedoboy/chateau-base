@@ -72,6 +72,8 @@ jobs:
         run: pnpm typecheck
 
       - name: Test
+        env:
+          NEXT_PUBLIC_CHATEAU_API_BASE_URL: ""
         run: pnpm test
 
       - name: Build
