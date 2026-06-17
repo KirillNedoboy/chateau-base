@@ -172,6 +172,26 @@ function StatusPill({ children }: { children: React.ReactNode }) {
   return <span className="status-pill">{children}</span>;
 }
 
+function StatCard({
+  label,
+  value,
+  detail,
+  tone = "neutral"
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail?: string;
+  tone?: "neutral" | "grape" | "wine" | "green" | "gold";
+}) {
+  return (
+    <article className={`stat-card stat-card-${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {detail ? <small>{detail}</small> : null}
+    </article>
+  );
+}
+
 export function WebShell() {
   const [state, setState] = useState<ShellLoadState>({
     status: "idle",
@@ -476,15 +496,50 @@ export function WebShell() {
 
   return (
     <main className="shell">
-      <section className="hero-band" aria-labelledby="app-title">
-        <div>
+      <section className="hero-band game-surface" aria-labelledby="app-title">
+        <div className="hero-copy-block">
           <p className="eyebrow">Backend decides. Base preserves.</p>
           <h1 id="app-title">Chateau Base</h1>
           <p className="hero-copy">
             Make wine. Get judged. Flex the bottle. Stay based.
           </p>
+          <p className="wallet-note">Wallet unlocks after first vintage.</p>
         </div>
-        <StatusPill>Wallet unlocks after first vintage</StatusPill>
+
+        <div className="hero-status-grid" aria-label="Winery status">
+          <StatCard
+            label="GRAPE"
+            value={gameState ? gameState.user.grapeBalance : "--"}
+            detail="Off-chain balance"
+            tone="grape"
+          />
+          <StatCard
+            label="Chateau"
+            value={gameState ? `Level ${gameState.user.chateauLevel}` : "--"}
+            detail="Quality cap source"
+            tone="wine"
+          />
+          <StatCard
+            label="Season"
+            value={
+              gameState
+                ? gameState.activeSeason?.name ?? "No active season"
+                : "Loading"
+            }
+            detail={gameState?.activeSeason ? "Active" : gameState ? "Unavailable" : "Loading"}
+            tone="gold"
+          />
+          <StatCard
+            label="Tutorial"
+            value={
+              gameState
+                ? formatKey(gameState.user.tutorialState.status)
+                : loadingLabel ?? "Starting"
+            }
+            detail={gameState ? tutorialPrompt(gameState.user.tutorialState) : "Session first"}
+            tone="green"
+          />
+        </div>
       </section>
 
       <PhaserMap onInteract={handleMapInteract} />
@@ -639,7 +694,7 @@ export function WebShell() {
       ) : null}
 
       {loadingLabel ? (
-        <section className="panel" aria-live="polite">
+        <section className="panel state-banner" aria-live="polite">
           <p className="section-label">{loadingLabel}</p>
           <div className="loading-line" />
         </section>
@@ -659,7 +714,10 @@ export function WebShell() {
         <div className="dashboard-grid">
           <section className="panel summary-panel">
             <div className="panel-heading">
-              <p className="section-label">Winemaker</p>
+              <div>
+                <p className="section-label">Winemaker</p>
+                <h2>Cellar Console</h2>
+              </div>
               <StatusPill>Level {gameState.user.chateauLevel}</StatusPill>
             </div>
             <dl className="summary-list">

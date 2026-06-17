@@ -17,14 +17,19 @@ export function CellarModal({ gameState, onClose }: CellarModalProps) {
           Close
         </button>
       </div>
-      {gameState.cellar ? (
-        <p className="prompt-text">
-          Slots: {gameState.cellar.usedSlots}/{gameState.cellar.maxSlots}
+      <section className="state-banner empty-state">
+        <p className="section-label">Cellar Capacity</p>
+        {gameState.cellar ? (
+          <p className="prompt-text">
+            Slots: {gameState.cellar.usedSlots}/{gameState.cellar.maxSlots}
+          </p>
+        ) : (
+          <p className="muted">Cellar is not initialized yet.</p>
+        )}
+        <p className="muted">
+          Public wine listing is a later pass. Reopen bottles from result/share flows for now.
         </p>
-      ) : (
-        <p className="muted">Cellar is not initialized yet.</p>
-      )}
-      <p className="muted">Wine list endpoints are not wired in this plan.</p>
+      </section>
     </section>
   );
 }

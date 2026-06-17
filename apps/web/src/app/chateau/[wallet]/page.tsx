@@ -23,17 +23,28 @@ export default async function ChateauProfilePage({ params }: ChateauPageProps) {
 
     return (
       <main className="shell">
-        <section className="hero-band" aria-labelledby="profile-title">
-          <div>
+        <section className="hero-band game-surface" aria-labelledby="profile-title">
+          <div className="hero-copy-block">
             <p className="eyebrow">Chateau profile</p>
-            <h1 id="profile-title">{profile.shortWallet}</h1>
+            <h1 id="profile-title" className="wallet-heading">
+              {profile.shortWallet}
+            </h1>
             <p className="hero-copy">
               {profile.basedWinemaker ? "Based Winemaker" : "Winemaker"}
             </p>
           </div>
-          <span className="status-pill">
-            {profile.preservedVintagesCount} verified / {profile.pendingPreserveCount} pending
-          </span>
+          <div className="hero-status-grid">
+            <article className="stat-card stat-card-gold">
+              <span>Preserved</span>
+              <strong>{profile.preservedVintagesCount}</strong>
+              <small>Confirmed vintages</small>
+            </article>
+            <article className="stat-card stat-card-green">
+              <span>Pending</span>
+              <strong>{profile.pendingPreserveCount}</strong>
+              <small>Awaiting confirmation</small>
+            </article>
+          </div>
         </section>
 
         <div className="dashboard-grid">

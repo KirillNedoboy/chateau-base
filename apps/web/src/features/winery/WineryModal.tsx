@@ -104,9 +104,15 @@ export function WineryModal({
           Close
         </button>
       </div>
-      <p className="muted">Harvested grapes available: {grapeInventory}</p>
+      <section className="state-banner">
+        <p className="section-label">Production Bay</p>
+        <p className="prompt-text">
+          Harvested grapes available: <strong>{grapeInventory}</strong>. Preview locks the
+          current recipe before the backend crafts it.
+        </p>
+      </section>
 
-      <div className="form-grid">
+      <div className="form-grid recipe-grid">
         <label>
           Grape amount
           <input
@@ -166,11 +172,11 @@ export function WineryModal({
         </label>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {message ? <p className="form-success">{message}</p> : null}
+      {error ? <p className="state-banner form-error">{error}</p> : null}
+      {message ? <p className="state-banner form-success">{message}</p> : null}
 
       {currentPreview ? (
-        <section className="mini-panel">
+        <section className="mini-panel preview-panel">
           <div className="panel-heading">
             <p className="section-label">Backend Preview</p>
             <span className="status-pill">

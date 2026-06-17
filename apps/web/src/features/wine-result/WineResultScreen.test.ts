@@ -2,9 +2,11 @@ import type { WineCraftResponse } from "../../lib/api";
 import { describe, expect, it } from "vitest";
 import {
   claimSellWineIntent,
+  getQualityPresentation,
   getVisibleWineSellUiState,
   getWineSellActionView,
   getWineSellUiStateForBatch,
+  getWineProfileRows,
   getWineResultSections,
   releaseSellWineIntent,
   setWineSellUiStateForIntent,
@@ -96,6 +98,28 @@ describe("Plan 013 wine result view model", () => {
         onchainEligible: false
       })
     ).toBe(false);
+  });
+
+  it("maps quality tiers to stable visual presentation tokens", () => {
+    expect(getQualityPresentation("common")).toMatchObject({
+      toneClassName: "quality-common",
+      eyebrow: "Cellar Judgment"
+    });
+    expect(getQualityPresentation("legendary")).toMatchObject({
+      toneClassName: "quality-legendary",
+      eyebrow: "Cellar Judgment"
+    });
+  });
+
+  it("orders Wine DNA profile rows for meter rendering", () => {
+    expect(getWineProfileRows(baseResult.profile)).toEqual([
+      { label: "Acidity", value: 54 },
+      { label: "Body", value: 45 },
+      { label: "Tannin", value: 30 },
+      { label: "Aroma", value: 58 },
+      { label: "Complexity", value: 44 },
+      { label: "Balance", value: 52 }
+    ]);
   });
 
   it("returns disabled sell button state while sell is busy", () => {

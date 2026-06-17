@@ -14,9 +14,14 @@ export function MarketModal({ onClose }: MarketModalProps) {
           Close
         </button>
       </div>
-      <p className="muted">
-        Sell from a revealed wine result. Market wine listing is still a follow-up.
-      </p>
+      <section className="state-banner empty-state">
+        <p className="section-label">Market Desk</p>
+        <p className="prompt-text">Sell from a revealed wine result.</p>
+        <p className="muted">
+          A full market listing is a later pass; this keeps sale behavior tied to the
+          backend result payload.
+        </p>
+      </section>
     </section>
   );
 }

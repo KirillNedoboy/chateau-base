@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Chateau Base",
-  description: "Mobile-first winery game scaffold."
+  description: "Make wine, get judged, flex the bottle, and preserve meaningful vintages on Base."
 };
 
 export default function RootLayout({

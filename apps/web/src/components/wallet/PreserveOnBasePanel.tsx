@@ -147,22 +147,29 @@ export function PreserveOnBasePanel({
   };
 
   return (
-    <section className="mini-panel">
+    <section className="mini-panel preserve-panel">
       <div className="panel-heading">
         <div>
           <p className="section-label">Base Preserve</p>
-          <p className="prompt-text">Save this vintage to your Base profile.</p>
+          <p className="prompt-text">Optional proof for meaningful vintages.</p>
+          <p className="muted">
+            Submitted transactions stay pending until a future receipt check confirms them.
+          </p>
         </div>
         <button
           type="button"
           onClick={() => void handlePreserve()}
           disabled={state.status === "busy" || state.status === "submitted"}
         >
-          Preserve on Base
+          {state.status === "busy"
+            ? "Preserving"
+            : state.status === "submitted"
+              ? "Pending"
+              : "Preserve on Base"}
         </button>
       </div>
-      {state.message ? <p className="muted">{state.message}</p> : null}
-      {state.error ? <p className="error-text">{state.error}</p> : null}
+      {state.message ? <p className="state-banner form-success">{state.message}</p> : null}
+      {state.error ? <p className="state-banner form-error">{state.error}</p> : null}
     </section>
   );
 }

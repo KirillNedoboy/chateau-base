@@ -35,10 +35,12 @@ export function ShareCard({ share }: ShareCardProps) {
 
   return (
     <article className="share-card" aria-labelledby="share-card-title">
-      <p className="section-label">Chateau Base Share</p>
-      <h1 id="share-card-title">{share.title}</h1>
-      <p className="hero-copy">{share.subtitle}</p>
-      <p className="prompt-text">{share.body}</p>
+      <div className="share-card-hero">
+        <p className="section-label">Chateau Base Share</p>
+        <h1 id="share-card-title">{share.title}</h1>
+        <p className="hero-copy">{share.subtitle}</p>
+        <p className="prompt-text">{share.body}</p>
+      </div>
 
       <dl className="summary-list">
         {qualityLevel ? (

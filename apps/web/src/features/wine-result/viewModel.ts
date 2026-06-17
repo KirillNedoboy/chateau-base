@@ -1,3 +1,4 @@
+import type { WineQualityLevel } from "@chateau/shared";
 import type { WineCraftResponse } from "../../lib/api";
 import { formatKey } from "../game-ui/viewModels";
 
@@ -21,6 +22,17 @@ export type WineSellActionView = {
   resultActionsDisabled: boolean;
 };
 
+export type QualityPresentation = {
+  toneClassName: string;
+  eyebrow: string;
+  summary: string;
+};
+
+export type WineProfileRow = {
+  label: string;
+  value: number;
+};
+
 export type SellWineIntent = {
   batchId: string;
   idempotencyKey: string;
@@ -39,8 +51,60 @@ export const IDLE_WINE_SELL_UI_STATE: WineSellUiState = {
   sold: false
 };
 
+const QUALITY_PRESENTATION: Record<WineQualityLevel, QualityPresentation> = {
+  common: {
+    toneClassName: "quality-common",
+    eyebrow: "Cellar Judgment",
+    summary: "Fermented. Barely."
+  },
+  good: {
+    toneClassName: "quality-good",
+    eyebrow: "Cellar Judgment",
+    summary: "A real first bottle."
+  },
+  premium: {
+    toneClassName: "quality-premium",
+    eyebrow: "Cellar Judgment",
+    summary: "The chateau has a pulse."
+  },
+  grand_cru: {
+    toneClassName: "quality-grand-cru",
+    eyebrow: "Cellar Judgment",
+    summary: "This bottle can talk."
+  },
+  legendary: {
+    toneClassName: "quality-legendary",
+    eyebrow: "Cellar Judgment",
+    summary: "Base may need to witness this."
+  }
+};
+
+const PROFILE_ORDER = [
+  "acidity",
+  "body",
+  "tannin",
+  "aroma",
+  "complexity",
+  "balance"
+] as const;
+
 function formatProfileEntry(key: string, value: number): string {
   return `${formatKey(key)} ${value}`;
+}
+
+export function getQualityPresentation(
+  qualityLevel: WineQualityLevel
+): QualityPresentation {
+  return QUALITY_PRESENTATION[qualityLevel];
+}
+
+export function getWineProfileRows(
+  profile: WineCraftResponse["profile"]
+): WineProfileRow[] {
+  return PROFILE_ORDER.map((key) => ({
+    label: formatKey(key),
+    value: profile[key]
+  }));
 }
 
 export function formatMoment(moment: string): string {

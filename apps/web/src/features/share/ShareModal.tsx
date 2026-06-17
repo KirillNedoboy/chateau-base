@@ -30,9 +30,12 @@ export function ShareModal({
           Close
         </button>
       </div>
-      <p className="muted">
-        Create a stable share link. The challenge is recorded when a friend opens it.
-      </p>
+      <section className="state-banner">
+        <p className="section-label">Flex Link</p>
+        <p className="prompt-text">
+          Create a stable share link. Challenge attribution starts when a friend opens it.
+        </p>
+      </section>
       <div className="action-row">
         <button type="button" onClick={onCreateShare} disabled={busy}>
           {busy ? "Creating" : "Create Share Link"}
@@ -43,8 +46,8 @@ export function ShareModal({
           </a>
         ) : null}
       </div>
-      {error ? <p className="form-error">{error}</p> : null}
-      {message ? <p className="form-success">{message}</p> : null}
+      {error ? <p className="state-banner form-error">{error}</p> : null}
+      {message ? <p className="state-banner form-success">{message}</p> : null}
     </section>
   );
 }

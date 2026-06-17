@@ -9,43 +9,67 @@ export type ShopItemViewModel = {
   key: ShopItemKey;
   label: string;
   description: string;
+  badge: string;
+  tone: "field" | "closure" | "unlock" | "expansion";
+  actionLabel: string;
 };
 
 export const SHOP_ITEMS: readonly ShopItemViewModel[] = [
   {
     key: "vine",
     label: "Vine",
-    description: "Plantable vine inventory for vineyard plots."
+    description: "Plantable vine inventory for vineyard plots.",
+    badge: "Field",
+    tone: "field",
+    actionLabel: "Buy"
   },
   {
     key: "screw_cap",
     label: "Screw Cap",
-    description: "Cheap closure for safe early batches."
+    description: "Cheap closure for safe early batches.",
+    badge: "Fast",
+    tone: "closure",
+    actionLabel: "Buy"
   },
   {
     key: "cork",
     label: "Cork",
-    description: "Prestige closure for status bottles."
+    description: "Prestige closure for status bottles.",
+    badge: "Prestige",
+    tone: "closure",
+    actionLabel: "Buy"
   },
   {
     key: "steel_tank_unlock",
     label: "Steel Tank Unlock",
-    description: "Basic clean production vessel unlock."
+    description: "Basic clean production vessel unlock.",
+    badge: "Gear",
+    tone: "unlock",
+    actionLabel: "Buy"
   },
   {
     key: "old_oak_barrel_unlock",
     label: "Old Oak Barrel Unlock",
-    description: "Unlocks old oak production paths."
+    description: "Unlocks old oak production paths.",
+    badge: "Oak",
+    tone: "unlock",
+    actionLabel: "Buy"
   },
   {
     key: "new_oak_barrel_unlock",
     label: "New Oak Barrel Unlock",
-    description: "Unlocks higher-risk oak production paths."
+    description: "Unlocks higher-risk oak production paths.",
+    badge: "Risk",
+    tone: "unlock",
+    actionLabel: "Buy"
   },
   {
     key: "new_plot",
     label: "New Plot",
-    description: "Adds one backend-owned vineyard plot."
+    description: "Adds one backend-owned vineyard plot.",
+    badge: "Expand",
+    tone: "expansion",
+    actionLabel: "Buy"
   }
 ] as const;
 

@@ -21,20 +21,25 @@ export function ShopModal({ busy, error, message, onBuy, onClose }: ShopModalPro
           Close
         </button>
       </div>
-      <p className="muted">Backend charges the authoritative cost after each click.</p>
+      <p className="muted">
+        Supplies are priced and applied by the backend. Buy one item per tap.
+      </p>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {message ? <p className="form-success">{message}</p> : null}
+      {error ? <p className="state-banner form-error">{error}</p> : null}
+      {message ? <p className="state-banner form-success">{message}</p> : null}
 
       <div className="shop-grid">
         {SHOP_ITEMS.map((item) => (
-          <article className="shop-item" key={item.key}>
+          <article className={`shop-item shop-item-${item.tone}`} key={item.key}>
             <div>
-              <h3>{item.label}</h3>
+              <div className="item-title-row">
+                <h3>{item.label}</h3>
+                <span className="tag-chip">{item.badge}</span>
+              </div>
               <p>{item.description}</p>
             </div>
             <button type="button" disabled={busy} onClick={() => onBuy(item.key)}>
-              Buy
+              {busy ? "Buying" : item.actionLabel}
             </button>
           </article>
         ))}

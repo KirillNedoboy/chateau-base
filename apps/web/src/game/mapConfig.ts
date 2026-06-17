@@ -1,5 +1,6 @@
 export const MAP_WIDTH = 720;
 export const MAP_HEIGHT = 480;
+export const MAP_PROMPT_Y = MAP_HEIGHT - 220;
 
 export const PLAYER_START = {
   x: 360,
@@ -20,9 +21,20 @@ export const REQUIRED_INTERACTION_ZONE_IDS = [
 
 export type InteractionZoneId = (typeof REQUIRED_INTERACTION_ZONE_IDS)[number];
 
+export type InteractionZoneKind =
+  | "chateau"
+  | "cellar"
+  | "production"
+  | "plot"
+  | "shop"
+  | "market"
+  | "ghost";
+
 export type InteractionZone = {
   id: InteractionZoneId;
   label: string;
+  shortLabel: string;
+  kind: InteractionZoneKind;
   prompt: string;
   x: number;
   y: number;
@@ -41,7 +53,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "chateau",
     label: "Chateau",
-    prompt: "Press E or Interact at the Chateau",
+    shortLabel: "CHATEAU",
+    kind: "chateau",
+    prompt: "Press E or tap Interact at the Chateau",
     x: 360,
     y: 72,
     width: 250,
@@ -52,7 +66,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "cellar",
     label: "Cellar",
-    prompt: "Press E or Interact at the Cellar",
+    shortLabel: "CELLAR",
+    kind: "cellar",
+    prompt: "Press E or tap Interact at the Cellar",
     x: 245,
     y: 170,
     width: 130,
@@ -63,7 +79,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "production",
     label: "Production",
-    prompt: "Press E or Interact at Production",
+    shortLabel: "WINERY",
+    kind: "production",
+    prompt: "Press E or tap Interact to craft wine",
     x: 475,
     y: 170,
     width: 150,
@@ -74,7 +92,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "plot_1",
     label: "Plot 1",
-    prompt: "Press E or Interact at Plot 1",
+    shortLabel: "PLOT 1",
+    kind: "plot",
+    prompt: "Press E or tap Interact at Plot 1",
     x: 150,
     y: 278,
     width: 115,
@@ -85,7 +105,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "plot_2",
     label: "Plot 2",
-    prompt: "Press E or Interact at Plot 2",
+    shortLabel: "PLOT 2",
+    kind: "plot",
+    prompt: "Press E or tap Interact at Plot 2",
     x: 300,
     y: 278,
     width: 115,
@@ -96,7 +118,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "plot_3",
     label: "Plot 3",
-    prompt: "Press E or Interact at Plot 3",
+    shortLabel: "PLOT 3",
+    kind: "plot",
+    prompt: "Press E or tap Interact at Plot 3",
     x: 450,
     y: 278,
     width: 115,
@@ -107,7 +131,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "shop",
     label: "Shop",
-    prompt: "Press E or Interact at the Shop",
+    shortLabel: "SHOP",
+    kind: "shop",
+    prompt: "Press E or tap Interact at the Shop",
     x: 245,
     y: 390,
     width: 130,
@@ -118,7 +144,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "market",
     label: "Market",
-    prompt: "Press E or Interact at the Market",
+    shortLabel: "MARKET",
+    kind: "market",
+    prompt: "Press E or tap Interact at the Market",
     x: 475,
     y: 390,
     width: 150,
@@ -129,7 +157,9 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "ghost_sommelier",
     label: "Ghost Sommelier",
-    prompt: "Press E or Interact near the Ghost Sommelier",
+    shortLabel: "GHOST",
+    kind: "ghost",
+    prompt: "Press E or tap Interact near the Ghost Sommelier",
     x: 610,
     y: 252,
     width: 92,

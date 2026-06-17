@@ -564,3 +564,111 @@ Run the GitHub Actions CI workflow after pushing the branch, then address any CI
 - Second GitHub Actions run `27447255677` passed install, Prisma validate/generate, migrate deploy, seed, DB smoke, and typecheck, then failed during `pnpm test` in `@chateau/web` API client unit tests.
 - Root cause: job-level `NEXT_PUBLIC_CHATEAU_API_BASE_URL` made web unit-test fetch URLs absolute (`http://127.0.0.1:4000/...`) while the existing local tests expect relative API paths.
 - Minimal fix: the CI `Test` step now clears `NEXT_PUBLIC_CHATEAU_API_BASE_URL` so unit tests match local hermetic behavior; build keeps the staging-style API base URL from job env.
+
+### Plan 017 visual MVP polish pass 1
+
+- Lazyweb research was used for pattern inspiration only: mobile dashboard/status hierarchy, reward/result reveals, share/referral CTAs, profile/stat layouts, wallet/pending transaction clarity, and friendly empty/loading/error states.
+- Relevant takeaways applied:
+  - Put progress/status in the first viewport without replacing the playable map.
+  - Use friction only to clarify commitment, especially preview/craft and Base preserve pending states.
+  - Avoid competing CTAs by grouping result actions into flex, economy, preserve, and secondary actions.
+  - Keep the MVP task-first and asset-light; no copied Lazyweb screenshots/assets or new dependencies were added.
+- Web visual system now uses shared CSS tokens for parchment, wine, grape, vine, gold, state banners, stat cards, chips, buttons, map shell, result cards, and mobile wrapping rules.
+- `WebShell` now presents a game-like hero/status area with GRAPE, Chateau Level, Season, Tutorial, and wallet-unlock messaging before the playable map.
+- Phaser map polish keeps existing zone IDs and interaction behavior while adding vineyard ground texture, path strips, landmark-specific zone drawings, improved labels, active-zone highlight, and a stronger prompt bar.
+- Shop, plot, winery, cellar, market, share, preserve, and public profile screens received panel/state polish only; no backend/API/gameplay behavior changed.
+- Wine result screen now reads as a reward/reveal card with tier styling, metrics, cap indicator, label frame, Wine DNA meters, tag chips, production receipt, verdict block, sale/onchain signal, grouped actions, and pending-preserve copy that remains distinct from confirmed preservation.
+- Tests were updated for presentational map metadata, shop visual metadata, quality presentation tokens, and Wine DNA row ordering.
+- Remaining visual gaps for Visual Pass 2:
+  - Browser-based visual QA across real mobile/desktop viewports.
+  - Real cellar/market wine listings once backend endpoints exist.
+  - More nuanced plot readiness once `/api/game/state` exposes per-plot occupancy/readiness.
+  - Optional lightweight icon system if a dependency is already adopted later.
+
+### Plan 017 validation
+
+- RED checks:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts viewModels.test.ts WineResultScreen.test.ts` failed before implementation on missing map presentation metadata, shop visual metadata, and wine-result presentation helpers.
+- Checks passed:
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check`
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches.
+- Browser fallback QA:
+  - In-app Browser plugin control was not exposed in this turn after tool discovery, so terminal Playwright CLI was used as a fallback.
+  - `pnpm --filter @chateau/web dev` was started locally on `http://localhost:3000`.
+  - Playwright snapshot confirmed the hydrated page rendered the polished hero/status cards, map region, mobile controls, and expected API error state with no API server running.
+  - Screenshot was inspected locally during QA and removed afterward to avoid leaving generated artifacts.
+- Known validation note: `pnpm test` still prints the existing Ganache/uws Node fallback warning in contract tests, but the test command exits successfully.
+
+### Plan 017 visual review fix
+
+- Fixed the remaining map prompt overlap risk by adding `MAP_PROMPT_Y = MAP_HEIGHT - 220` in `apps/web/src/game/mapConfig.ts` and using it in `apps/web/src/components/game/PhaserMap.tsx`.
+- Added regression coverage in `apps/web/src/game/mapConfig.test.ts` to keep the prompt at least 200 map units above the canvas bottom control band.
+- Confirmed the existing Plan 017 working tree already contained the requested share URL wrapping rules in `apps/web/src/app/globals.css`, the backend-owned season fallback in `apps/web/src/components/WebShell.tsx`, and the future receipt-check pending copy in `apps/web/src/components/wallet/PreserveOnBasePanel.tsx`.
+- No backend, API, DB, contract, gameplay, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain buy/plant/harvest/craft/sell logic was changed.
+
+### Plan 017 visual review validation
+
+- RED check:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts` failed before implementation because `MAP_PROMPT_Y` was undefined.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check` passed with Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after removing the dev-server-generated `.next/dev/types/routes.d.ts` import.
+- Browser fallback QA:
+  - In-app Browser plugin control was still not exposed after tool discovery, so terminal Playwright CLI was used.
+  - `pnpm --filter @chateau/web dev` was started on `http://localhost:3000`, then stopped after QA.
+  - Map prompt/control measurements passed at requested viewports:
+    - `360x740`: prompt clearance above controls `10.77px`, horizontal overflow `false`.
+    - `390x844`: prompt clearance above controls `10.77px`, horizontal overflow `false`.
+    - `1280x800`: prompt clearance above controls `97.02px`, horizontal overflow `false`.
+  - Long share URL fixture using loaded app CSS had no horizontal overflow:
+    - `360x740`: link width `306px`, right edge `333px`, viewport width `360px`.
+    - `390x844`: link width `336px`, right edge `363px`, viewport width `390px`.
+    - `1280x800`: link width `718px`, right edge `999px`, viewport width `1280px`.
+  - Mocked browser game state with `activeSeason: null` showed `No active season` after load, with no `Genesis Harvest` and no Season-card `Loading` text.
+  - Temporary Playwright files and screenshots were removed.
+- Remaining visual QA gap:
+  - API-backed visual QA through a real craft/share/preserve result flow still remains for a DB-seeded local stack or staging environment.
+
+### Plan 017 API-backed visual QA overflow fix
+
+- Fixed the remaining `/chateau/:wallet` mobile horizontal overflow in the profile hero/status area only; no backend, API, DB, contract, preserve, sell, share, or gameplay logic changed.
+- Root cause confirmed in browser QA: the profile hero wallet heading expanded wider than the padded hero content track, and adjacent grid/flex children still needed explicit `min-width: 0` shrink behavior.
+- `apps/web/src/app/chateau/[wallet]/page.tsx` now adds a dedicated `wallet-heading` class hook to the profile title.
+- `apps/web/src/app/globals.css` now:
+  - lets the profile hero/grid/card children shrink with `min-width: 0`,
+  - wraps long wallet/title text safely with `overflow-wrap: anywhere` / `word-break: break-word`,
+  - and allows public-cellar row text/status content to wrap instead of forcing horizontal scroll.
+- Added a narrow regression check in `apps/web/src/app/chateau/[wallet]/page.test.tsx` that fails if the wallet-heading markup hook is removed.
+- `apps/web/next-env.d.ts` remains standard Next references only and still contains no generated `.next` import.
+
+### Plan 017 API-backed visual QA overflow validation
+
+- RED checks:
+  - Browser QA before the fix reproduced the overflow on the real profile route against a controlled local profile response:
+    - `360x740`: `scrollWidth 387`, `clientWidth 360`, hero `scrollWidth 376`, title width `358`
+    - `390x844`: `scrollWidth 417`, `clientWidth 390`, hero `scrollWidth 406`, title width `388`
+  - `pnpm --filter @chateau/web test -- 'src/app/chateau/[wallet]/page.test.tsx'` failed before implementation because `className="wallet-heading"` was missing from the page source.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- 'src/app/chateau/[wallet]/page.test.tsx'`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check` passed with existing Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches.
+- Browser QA after the fix:
+  - `360x740`: `scrollWidth 360`, `clientWidth 360`, hero `scrollWidth 338`, title width `302`
+  - `390x844`: `scrollWidth 390`, `clientWidth 390`, hero `scrollWidth 368`, title width `332`
+  - `1280x800`: `scrollWidth 1280`, `clientWidth 1280`, hero `scrollWidth 750`, title width `313`

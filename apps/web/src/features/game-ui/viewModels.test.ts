@@ -20,6 +20,16 @@ describe("Plan 013 game UI view models", () => {
     expect(new Set(SHOP_ITEMS.map((item) => item.key)).size).toBe(SHOP_ITEMS.length);
   });
 
+  it("adds visual metadata to each shop item without adding economy constants", () => {
+    for (const item of SHOP_ITEMS) {
+      expect(item.badge.length).toBeGreaterThan(0);
+      expect(item.tone).toMatch(/^(field|closure|unlock|expansion)$/);
+      expect(item.actionLabel).toBe("Buy");
+      expect(item).not.toHaveProperty("price");
+      expect(item).not.toHaveProperty("cost");
+    }
+  });
+
   it("reads inventory quantities by backend item key", () => {
     expect(
       getInventoryQuantity(
