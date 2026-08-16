@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SHOP_ITEMS,
+  getCoachOverlayView,
   getInventoryQuantity,
   getPlotStatusCopy,
   getTutorialLine
@@ -52,5 +53,17 @@ describe("Plan 013 game UI view models", () => {
   it("keeps Ghost Sommelier tutorial copy short", () => {
     expect(getTutorialLine("vine_bought")).toBe("Plant the vine, genius.");
     expect(getTutorialLine("wine_revealed").length).toBeLessThanOrEqual(80);
+  });
+
+  it("builds a reference-style coach overlay from tutorial state", () => {
+    expect(getCoachOverlayView("vine_harvested")).toEqual({
+      promptLabel: "Tap to craft wine",
+      targetZone: "production",
+      sommelierName: "Ghost Sommelier",
+      sommelierLine: "Walk to the winery. Use your legs."
+    });
+
+    expect(getCoachOverlayView("wine_revealed")).toBeNull();
+    expect(getCoachOverlayView(null)).toBeNull();
   });
 });

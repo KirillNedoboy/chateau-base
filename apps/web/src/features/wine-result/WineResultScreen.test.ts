@@ -2,6 +2,7 @@ import type { WineCraftResponse } from "../../lib/api";
 import { describe, expect, it } from "vitest";
 import {
   claimSellWineIntent,
+  getCurrentBatchDockView,
   getQualityPresentation,
   getVisibleWineSellUiState,
   getWineSellActionView,
@@ -120,6 +121,33 @@ describe("Plan 013 wine result view model", () => {
       { label: "Complexity", value: 44 },
       { label: "Balance", value: 52 }
     ]);
+  });
+
+  it("builds the current batch dock from the real craft response and sell state", () => {
+    expect(
+      getCurrentBatchDockView(baseResult, {
+        busy: false,
+        error: null,
+        message: null,
+        sold: false
+      })
+    ).toEqual({
+      title: "Chateau Base",
+      tierLabel: "Good",
+      scoreLabel: "45/100",
+      bottleLabel: "3",
+      statusLabel: "Ready",
+      sellDisabled: false
+    });
+
+    expect(
+      getCurrentBatchDockView(baseResult, {
+        busy: false,
+        error: null,
+        message: "Sold wine for 200 GRAPE. Balance: 620.",
+        sold: true
+      }).statusLabel
+    ).toBe("Sold");
   });
 
   it("returns disabled sell button state while sell is busy", () => {

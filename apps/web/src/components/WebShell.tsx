@@ -1,11 +1,21 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ShopItemKey } from "@chateau/shared";
-import { type InteractionZoneId } from "../game/mapConfig";
+import {
+  BOTTOM_NAV_ICON_ASSET_PATH,
+  QUICK_ACTION_ICON_ASSET_PATH,
+  type InteractionZoneId
+} from "../game/mapConfig";
 import { CellarModal } from "../features/cellar/CellarModal";
-import { formatKey, getTutorialLine } from "../features/game-ui/viewModels";
+import {
+  formatKey,
+  getCoachOverlayView,
+  getTutorialLine,
+  type CoachOverlayView
+} from "../features/game-ui/viewModels";
 import { MarketModal } from "../features/market/MarketModal";
 import { PlotModal } from "../features/plots/PlotModal";
 import { ShareModal } from "../features/share/ShareModal";
@@ -13,10 +23,12 @@ import { ShopModal } from "../features/shop/ShopModal";
 import { WineResultScreen } from "../features/wine-result/WineResultScreen";
 import {
   claimSellWineIntent,
+  getCurrentBatchDockView,
   getVisibleWineSellUiState,
   releaseSellWineIntent,
   setWineSellUiStateForIntent,
   type SellWineIntentTracker,
+  type WineSellUiState,
   type WineSellUiStateByBatch
 } from "../features/wine-result/viewModel";
 import { WineryModal } from "../features/winery/WineryModal";
@@ -192,6 +204,203 @@ function StatCard({
   );
 }
 
+function TopHud({
+  gameState,
+  loadingLabel,
+  onOpenShop
+}: {
+  gameState: GameStateResponse | null;
+  loadingLabel: string | null;
+  onOpenShop: () => void;
+}) {
+  return (
+    <header className="top-hud" aria-label="Game status">
+      <button type="button" className="hud-icon-button" aria-label="Open menu">
+        <span />
+        <span />
+        <span />
+      </button>
+      <section className="hud-resource-card" aria-label="GRAPE balance">
+        <span className="grape-cluster" aria-hidden="true" />
+        <div>
+          <strong>{gameState ? gameState.user.grapeBalance : "--"}</strong>
+          <span>GRAPE</span>
+        </div>
+        <button type="button" className="hud-plus-button" aria-label="Open shop" onClick={onOpenShop}>
+          +
+        </button>
+      </section>
+      <section className="hud-level-card" aria-label="Chateau level">
+        <strong>CHATEAU LEVEL {gameState ? gameState.user.chateauLevel : "--"}</strong>
+        <div className="hud-progress-row">
+          <span className="hud-progress">
+            <span style={{ width: gameState ? "24%" : "12%" }} />
+          </span>
+          <small>{gameState ? "Quality cap active" : loadingLabel ?? "Starting"}</small>
+        </div>
+      </section>
+      <section className="hud-base-card" aria-label="Base status">
+        <span className="base-token">B</span>
+        <div>
+          <strong>BASE</strong>
+          <span>{gameState?.preserve.walletLinked ? "Wallet linked" : "Unlocks after result"}</span>
+        </div>
+      </section>
+    </header>
+  );
+}
+
+function QuestOverlay({
+  gameState,
+  loadingLabel
+}: {
+  gameState: GameStateResponse | null;
+  loadingLabel: string | null;
+}) {
+  const completed = gameState?.user.tutorialState.status === "completed";
+
+  return (
+    <aside className="quest-overlay" aria-label="Current quest">
+      <div className="quest-title-row">
+        <span>Getting Started</span>
+        <strong>{completed ? "3 / 3" : "1 / 3"}</strong>
+      </div>
+      <p>{gameState ? tutorialPrompt(gameState.user.tutorialState) : loadingLabel ?? "Loading session"}</p>
+      <div className="quest-progress">
+        <span style={{ width: completed ? "100%" : "34%" }} />
+      </div>
+      <strong className="quest-reward">+50 GRAPE</strong>
+    </aside>
+  );
+}
+
+const QUICK_ACTION_ITEMS = [
+  { label: "Quests", iconIndex: 0 },
+  { label: "Friends", iconIndex: 1 },
+  { label: "Leaderboard", iconIndex: 2 }
+] as const;
+
+function QuickActions() {
+  return (
+    <nav
+      className="quick-actions"
+      aria-label="MVP quick actions"
+      style={{ "--quick-action-icons": `url(${QUICK_ACTION_ICON_ASSET_PATH})` } as CSSProperties}
+    >
+      {QUICK_ACTION_ITEMS.map((item) => (
+        <button type="button" aria-label={item.label} disabled key={item.label} title={item.label}>
+          <span
+            aria-hidden="true"
+            className="quick-action-icon"
+            style={{ "--icon-index": item.iconIndex } as CSSProperties}
+          />
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function CoachOverlay({ view }: { view: CoachOverlayView }) {
+  return (
+    <>
+      <section className={`coach-tap coach-target-${view.targetZone}`} aria-label="Next action">
+        <span aria-hidden="true">Tap</span>
+        <strong>{view.promptLabel}</strong>
+      </section>
+      <section className="sommelier-bubble" aria-label={view.sommelierName}>
+        <strong>{view.sommelierName}</strong>
+        <p>{view.sommelierLine}</p>
+      </section>
+    </>
+  );
+}
+
+const BOTTOM_NAV_ITEMS = [
+  { label: "Base", shortLabel: "Base", iconIndex: 0 },
+  { label: "Inventory", shortLabel: "Bag", iconIndex: 1 },
+  { label: "Craft", shortLabel: "Craft", iconIndex: 2 },
+  { label: "Collection", shortLabel: "Cellar", iconIndex: 3 },
+  { label: "Profile", shortLabel: "Me", iconIndex: 4 }
+] as const;
+
+function BottomNav() {
+  return (
+    <nav
+      className="bottom-nav"
+      aria-label="Primary game sections"
+      style={{ "--bottom-nav-icons": `url(${BOTTOM_NAV_ICON_ASSET_PATH})` } as CSSProperties}
+    >
+      {BOTTOM_NAV_ITEMS.map((item) => (
+        <button
+          type="button"
+          aria-label={item.label}
+          className={item.label === "Base" ? "bottom-nav-active" : undefined}
+          disabled={item.label !== "Base"}
+          key={item.label}
+        >
+          <span
+            aria-hidden="true"
+            className="bottom-nav-icon"
+            style={{ "--icon-index": item.iconIndex } as CSSProperties}
+          />
+          <strong>{item.shortLabel}</strong>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function CurrentBatchDock({
+  wineResult,
+  sellState,
+  onSell,
+  onRunItBack,
+  onShare
+}: {
+  wineResult: WineCraftResponse;
+  sellState: WineSellUiState;
+  onSell: () => void;
+  onRunItBack: () => void;
+  onShare: () => void;
+}) {
+  const view = getCurrentBatchDockView(wineResult, sellState);
+
+  return (
+    <section className="current-batch-dock" aria-label="Current batch">
+      <div className="bottle-preview" aria-hidden="true">
+        <span />
+      </div>
+      <div className="current-batch-main">
+        <p className="section-label">Current Batch</p>
+        <h2>{view.title}</h2>
+        <span className="tag-chip tag-chip-gold">{view.tierLabel}</span>
+        <div className="batch-metrics">
+          <span>
+            Score <strong>{view.scoreLabel}</strong>
+          </span>
+          <span>
+            Bottles <strong>{view.bottleLabel}</strong>
+          </span>
+          <span>
+            Status <strong>{view.statusLabel}</strong>
+          </span>
+        </div>
+        <div className="batch-actions">
+          <button type="button" onClick={onShare}>
+            Share
+          </button>
+          <button type="button" onClick={onSell} disabled={view.sellDisabled}>
+            Sell
+          </button>
+          <button type="button" onClick={onRunItBack}>
+            Run It Back
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function WebShell() {
   const [state, setState] = useState<ShellLoadState>({
     status: "idle",
@@ -310,6 +519,9 @@ export function WebShell() {
   }, []);
 
   const currentUserId = gameState?.user.id ?? null;
+  const coachOverlay = gameState
+    ? getCoachOverlayView(gameState.user.tutorialState.currentStep)
+    : null;
   const currentSellOperation = getVisibleWineSellUiState(
     sellOperationsByBatch,
     wineResult?.id ?? null
@@ -495,54 +707,42 @@ export function WebShell() {
   }, [currentSellOperation.busy, currentSellOperation.sold, currentUserId, refreshGameState, wineResult]);
 
   return (
-    <main className="shell">
-      <section className="hero-band game-surface" aria-labelledby="app-title">
-        <div className="hero-copy-block">
-          <p className="eyebrow">Backend decides. Base preserves.</p>
-          <h1 id="app-title">Chateau Base</h1>
-          <p className="hero-copy">
-            Make wine. Get judged. Flex the bottle. Stay based.
-          </p>
-          <p className="wallet-note">Wallet unlocks after first vintage.</p>
-        </div>
+    <main className="shell game-app-shell">
+      <TopHud
+        gameState={gameState}
+        loadingLabel={loadingLabel}
+        onOpenShop={() => {
+          setActiveZone("shop");
+        }}
+      />
 
-        <div className="hero-status-grid" aria-label="Winery status">
-          <StatCard
-            label="GRAPE"
-            value={gameState ? gameState.user.grapeBalance : "--"}
-            detail="Off-chain balance"
-            tone="grape"
+      <section className="playfield-frame" aria-labelledby="app-title">
+        <h1 id="app-title" className="sr-only">
+          Chateau Base
+        </h1>
+        <QuestOverlay gameState={gameState} loadingLabel={loadingLabel} />
+        <QuickActions />
+        <PhaserMap onInteract={handleMapInteract} />
+        {coachOverlay && !wineResult ? <CoachOverlay view={coachOverlay} /> : null}
+        {wineResult ? (
+          <CurrentBatchDock
+            wineResult={wineResult}
+            sellState={currentSellOperation}
+            onSell={handleSellWine}
+            onRunItBack={() => {
+              if (currentSellOperation.busy) {
+                return;
+              }
+              setActiveZone("production");
+            }}
+            onShare={() => {
+              setShareMode("degen");
+              setShareUrl(null);
+              setOperation(IDLE_OPERATION);
+            }}
           />
-          <StatCard
-            label="Chateau"
-            value={gameState ? `Level ${gameState.user.chateauLevel}` : "--"}
-            detail="Quality cap source"
-            tone="wine"
-          />
-          <StatCard
-            label="Season"
-            value={
-              gameState
-                ? gameState.activeSeason?.name ?? "No active season"
-                : "Loading"
-            }
-            detail={gameState?.activeSeason ? "Active" : gameState ? "Unavailable" : "Loading"}
-            tone="gold"
-          />
-          <StatCard
-            label="Tutorial"
-            value={
-              gameState
-                ? formatKey(gameState.user.tutorialState.status)
-                : loadingLabel ?? "Starting"
-            }
-            detail={gameState ? tutorialPrompt(gameState.user.tutorialState) : "Session first"}
-            tone="green"
-          />
-        </div>
+        ) : null}
       </section>
-
-      <PhaserMap onInteract={handleMapInteract} />
 
       {wineResult ? (
         <WineResultScreen
@@ -772,6 +972,8 @@ export function WebShell() {
           </section>
         </div>
       ) : null}
+
+      <BottomNav />
     </main>
   );
 }

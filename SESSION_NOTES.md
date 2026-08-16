@@ -672,3 +672,170 @@ Run the GitHub Actions CI workflow after pushing the branch, then address any CI
   - `360x740`: `scrollWidth 360`, `clientWidth 360`, hero `scrollWidth 338`, title width `302`
   - `390x844`: `scrollWidth 390`, `clientWidth 390`, hero `scrollWidth 368`, title width `332`
   - `1280x800`: `scrollWidth 1280`, `clientWidth 1280`, hero `scrollWidth 750`, title width `313`
+
+### Plan 018 reference visual pass
+
+- Added `.plans/018-reference-visual-pass.md` for the reference-style visual pass.
+- Web shell now opens as a game frame instead of a marketing-style hero:
+  - compact top HUD with menu, GRAPE balance, Chateau level/cap status, and Base wallet status,
+  - quest overlay above the map,
+  - disabled MVP quick-action buttons for Quests/Friends/Leaderboard,
+  - fixed bottom navigation,
+  - current-batch dock driven only by real `wineResult` data.
+- Phaser map now uses a taller mobile-first scene (`720x1040`) with the reference landmark ordering:
+  - chateau/winery at top,
+  - cellar and production in the upper map,
+  - three vineyards in the middle,
+  - shop and market lower on the map,
+  - Ghost Sommelier near the player path.
+- Phaser drawing was upgraded from schematic rectangles to a richer cozy winery scene with forest edges, stone paths, chateau facade, building/vineyard decoration, Base banner treatment, ghost glow, and stronger zone labels.
+- Mobile joystick/interact controls were restyled as dark circular controls and fixed above the bottom nav on narrow screens to avoid overlap.
+- The HUD `+` button now opens the existing Shop interaction; no new backend, API, DB, contract, wallet, preserve, economy, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain gameplay mutation logic was added.
+- Browser QA used the existing local Next dev server on `127.0.0.1:3000`; Playwright Chromium was installed into the user Playwright cache because the CLI browser binary was missing.
+- Temporary Playwright screenshots were removed after inspection.
+
+### Plan 018 validation
+
+- RED check:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts` failed before implementation because `MAP_HEIGHT` was still `480`, below the new tall-scene contract.
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts` failed before the dock presentation helper because `getCurrentBatchDockView` did not exist.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/web test -- WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check` passed with Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches.
+- Browser visual QA:
+  - Playwright screenshots were captured at `390x844` and `1280x800` after waiting for `.map-canvas-shell canvas`.
+  - First mobile screenshot caught the joystick/interact controls partly under the fixed bottom nav; CSS was corrected by making narrow-screen mobile controls fixed above the nav.
+  - Follow-up mobile screenshot showed the controls above the bottom nav and the map rendering nonblank with HUD/quest/quick-action overlays visible.
+- Remaining visual risks:
+  - This is still CSS/Phaser-drawn art, not final premium bitmap/isometric game art.
+  - Full API-backed visual QA through an actual crafted `wineResult` current-batch dock remains a next pass, but the dock now has a pure `getCurrentBatchDockView` presentation contract covered by tests.
+  - Top HUD XP/progress remains a non-authoritative visual status row until a backend XP/reputation field exists.
+
+### Next safe step
+
+Run an API-backed local or staging flow through buy/plant/harvest/craft and capture the actual `wineResult` dock/result screen, then decide whether to commission/generate real map/building/character/bottle bitmap assets for the next fidelity jump.
+
+### Plan 018 reference feedback follow-up
+
+- User feedback confirmed the previous SVG/Phaser concept art was still far from the provided reference.
+- Switched the map rendering approach from vector-concept art toward reference-derived bitmap rendering:
+  - `MAP_ART_ASSET_PATH` now points to `/game/art/reference-pass/map-ground.png`.
+  - Added `MAP_REFERENCE_SPRITES` metadata and regression coverage for the prepared temporary raster asset pack.
+  - Generated temporary project-local PNG assets under `apps/web/public/game/art/reference-pass/` from the provided reference image.
+  - Phaser now loads the bitmap ground with `this.load.image` and keeps interaction rectangles as low-alpha overlays only.
+- Reduced inactive interaction-zone outlines so the map reads as artwork instead of debug boxes.
+- Adjusted the mobile Sommelier bubble so it no longer drops into the fixed joystick/interact control band at narrow viewports.
+- This pass did not change backend, API, DB, contracts, wallet, preserve, economy, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain gameplay mutation logic.
+
+### Plan 018 reference feedback validation
+
+- RED check:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts` failed after switching config to the new bitmap asset paths and before generating the PNG files.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts viewModels.test.ts WineResultScreen.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `git diff --check` passed with Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after restoring the dev-server-generated import.
+- Browser visual QA:
+  - Playwright screenshots were captured at `360x740`, `390x844`, and `1280x800` against `http://localhost:3000`.
+  - The map now uses a crisp reference-derived raster background and no longer shows the earlier vector/SVG placeholder style.
+  - Remaining known visual risk: the current bitmap ground is derived from the full reference mockup, so some baked reference UI/artifacts remain in the background. Final production quality still needs clean source art layers or generated/commissioned map, character, UI, and bottle assets.
+
+### Next safe step
+
+Create clean source art layers for the playable map instead of relying on the composite reference PNG: background-only map, character sprite, Ghost Sommelier sprite, landmark labels, controls, and current-batch/bottle assets.
+
+### Plan 018 screenshot-background correction
+
+- User feedback identified the previous reference feedback follow-up as incorrect because it used the provided screenshot as the map background.
+- Removed the screenshot-derived runtime path and temporary `apps/web/public/game/art/reference-pass/` assets.
+- `MAP_ART_ASSET_PATH` now points to `/game/art/chateau-map-painterly.png`.
+- Added a regression assertion that the runtime map art path must not contain `reference-pass`.
+- Generated `apps/web/public/game/art/chateau-map-painterly.png` from original procedural layers only: grass/forest texture, stone paths, chateau, cellar, production, vineyards, shop, market, Base banner, Ghost Sommelier, props, and vignette.
+- Phaser still loads the map as a bitmap art layer, but no longer uses pixels from the supplied reference screenshot.
+- No backend, API, DB, contracts, wallet, preserve, economy, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain gameplay mutation logic was changed.
+
+### Plan 018 screenshot-background correction validation
+
+- RED check:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts` failed while `MAP_ART_ASSET_PATH` still pointed to `/game/art/reference-pass/map-ground.png`.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/web build`
+  - `git diff --check` passed with Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build restore.
+- Browser QA:
+  - `npx --yes playwright screenshot --viewport-size=360,740 --wait-for-selector='.map-canvas-shell canvas' --wait-for-timeout=1500 http://localhost:3000 output/playwright/no-screenshot-bg-360.png`
+  - Screenshot confirmed the map is no longer the composite reference screenshot.
+- Remaining visual risk:
+  - The new asset is original and clean, but still procedural/temporary. Matching the provided reference quality still requires real generated or commissioned layered art assets.
+
+### Plan 018 generated map art pass
+
+- Used the user-provided `responses-image-generation` skill from `C:\Users\Администратор\Downloads\responses-image-generation.zip`.
+- The skill script was inspected before use and run from a temporary extracted copy; no API keys or secret files were printed.
+- Generated a clean 720x1040 PNG map via the Responses API image generation tool using the user's reference image only as style/composition input.
+- Prompt constraints explicitly required:
+  - standalone map art only,
+  - no HUD/app chrome/buttons/joystick/cards/speech bubbles,
+  - no copied screenshot pixels,
+  - no player character,
+  - chateau/winery, cellar, production, three vineyards, shop, market, fountain, Base banner, Ghost Sommelier, paths, forest edges, props, and warm painterly lighting.
+- Replaced `apps/web/public/game/art/chateau-map-painterly.png` with the generated clean map art.
+- Removed the old `apps/web/public/game/art/chateau-map-concept.svg` vector placeholder.
+- Runtime remains unchanged structurally: Phaser loads `MAP_ART_ASSET_PATH` as a bitmap map layer and keeps interaction zones as low-alpha overlays.
+- No backend, API, DB, contracts, wallet, preserve, economy, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain gameplay mutation logic was changed.
+
+### Plan 018 generated map art validation
+
+- Visual QA:
+  - Source generated image was inspected at `output/imagegen/chateau-map-clean.png` before integration.
+  - Browser screenshot was captured at `390x844` after integration and confirmed the generated map renders under the game HUD/controls.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web test`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/web build`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `git diff --check` passed with Windows line-ending warnings only.
+  - `Select-String -Path apps/web/next-env.d.ts -Pattern '\.next'` returned no matches after build restore.
+- Remaining visual risk:
+  - This pass upgrades the main map art substantially, but character, Ghost Sommelier as a separate sprite, bottle/current-batch art, and UI icons are still not generated as separate production assets.
+
+### Plan 018 player sprite pass
+
+- Generated a separate player character asset with the user-provided `responses-image-generation` skill.
+- Prompt required a single centered cozy winemaker character, back/3-4 view, black curly hair, dark navy BASE hoodie, no props, and flat `#00ff00` chroma-key background.
+- Removed the chroma-key background locally and saved a transparent sprite at `apps/web/public/game/art/player-winemaker.png`.
+- Added `PLAYER_SPRITE_ASSET_PATH = "/game/art/player-winemaker.png"` in `apps/web/src/game/mapConfig.ts`.
+- Added regression coverage that the transparent player sprite exists in project-local public assets.
+- Replaced the Phaser debug circle player with the generated bitmap sprite while keeping the small blue player marker.
+- Browser QA at `390x844` showed the sprite rendered at a readable size over the generated map.
+- No backend, API, DB, contracts, wallet, preserve, economy, NFT, ERC-20, marketplace, staking, betting, withdrawal, or onchain gameplay mutation logic was changed.
+
+### Plan 018 player sprite validation
+
+- RED check:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts` failed before implementation because `PLAYER_SPRITE_ASSET_PATH` was undefined.
+- Checks passed:
+  - `pnpm --filter @chateau/web test -- mapConfig.test.ts`
+  - `pnpm --filter @chateau/web typecheck`
+  - `pnpm --filter @chateau/web build`
+- Remaining visual risk:
+  - Player movement still uses one static facing direction. Directional walk frames are still needed for production animation quality.

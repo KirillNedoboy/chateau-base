@@ -33,6 +33,15 @@ export type WineProfileRow = {
   value: number;
 };
 
+export type CurrentBatchDockView = {
+  title: string;
+  tierLabel: string;
+  scoreLabel: string;
+  bottleLabel: string;
+  statusLabel: "Ready" | "Selling" | "Sold";
+  sellDisabled: boolean;
+};
+
 export type SellWineIntent = {
   batchId: string;
   idempotencyKey: string;
@@ -105,6 +114,20 @@ export function getWineProfileRows(
     label: formatKey(key),
     value: profile[key]
   }));
+}
+
+export function getCurrentBatchDockView(
+  result: WineCraftResponse,
+  sellState: WineSellUiState
+): CurrentBatchDockView {
+  return {
+    title: result.label.name,
+    tierLabel: formatKey(result.qualityLevel),
+    scoreLabel: `${result.qualityScore}/100`,
+    bottleLabel: String(result.bottleCount),
+    statusLabel: sellState.sold ? "Sold" : sellState.busy ? "Selling" : "Ready",
+    sellDisabled: sellState.busy || sellState.sold
+  };
 }
 
 export function formatMoment(moment: string): string {

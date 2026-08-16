@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   INTERACTION_ZONES,
+  MAP_ART_ASSET_PATH,
   MAP_HEIGHT,
   MAP_PROMPT_Y,
   MAP_WIDTH,
   PLAYER_START,
+  PLAYER_SPRITE_ASSET_PATH,
   type InteractionZone,
   type InteractionZoneId
 } from "../../game/mapConfig";
@@ -28,7 +30,11 @@ type JoystickVisualState = {
 
 const PLAYER_SPEED = 170;
 const PLAYER_RADIUS = 13;
+const PLAYER_SPRITE_WIDTH = 90;
+const PLAYER_SPRITE_HEIGHT = 128;
 const JOYSTICK_RADIUS = 42;
+const MAP_ART_KEY = "chateau-map-art";
+const PLAYER_SPRITE_KEY = "chateau-player-winemaker";
 
 function normalizeVector(x: number, y: number): MobileInput {
   const magnitude = Math.hypot(x, y);
@@ -80,7 +86,8 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
       }
 
       class ChateauMapScene extends PhaserRuntime.Scene {
-        private player!: Phaser.GameObjects.Arc;
+        private player!: Phaser.GameObjects.Image;
+        private playerMarker!: Phaser.GameObjects.Triangle;
         private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
         private keyW: Phaser.Input.Keyboard.Key | null = null;
         private keyA: Phaser.Input.Keyboard.Key | null = null;
@@ -97,6 +104,11 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
           super("ChateauMapScene");
         }
 
+        preload() {
+          this.load.image(MAP_ART_KEY, MAP_ART_ASSET_PATH);
+          this.load.image(PLAYER_SPRITE_KEY, PLAYER_SPRITE_ASSET_PATH);
+        }
+
         create() {
           this.drawGround();
 
@@ -105,15 +117,30 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
           }
 
           this.player = this.add
-            .circle(PLAYER_START.x, PLAYER_START.y, PLAYER_RADIUS, 0x24523f)
-            .setStrokeStyle(4, 0xfffaf0)
+            .image(PLAYER_START.x, PLAYER_START.y + 58, PLAYER_SPRITE_KEY)
+            .setOrigin(0.5, 1)
+            .setDisplaySize(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)
             .setDepth(20);
+          this.playerMarker = this.add
+            .triangle(
+              PLAYER_START.x,
+              PLAYER_START.y - 58,
+              0,
+              0,
+              12,
+              0,
+              6,
+              12,
+              0x4387ff
+            )
+            .setOrigin(0.5)
+            .setDepth(21);
 
           this.promptText = this.add
-            .text(MAP_WIDTH / 2, MAP_PROMPT_Y, "Walk into a zone", {
+            .text(MAP_WIDTH / 2, MAP_PROMPT_Y, "", {
               align: "center",
-              backgroundColor: "#2a171b",
-              color: "#fff8e8",
+              backgroundColor: "#111827",
+              color: "#f7efe1",
               fontFamily: "system-ui, sans-serif",
               fontSize: "15px",
               fontStyle: "700",
@@ -123,7 +150,8 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
               }
             })
             .setOrigin(0.5)
-            .setDepth(30);
+            .setDepth(30)
+            .setVisible(false);
 
           this.cursors = this.input.keyboard?.createCursorKeys() ?? null;
           this.keyW =
@@ -171,6 +199,8 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
             PLAYER_RADIUS,
             MAP_HEIGHT - PLAYER_RADIUS
           );
+          this.playerMarker.x = this.player.x;
+          this.playerMarker.y = this.player.y - PLAYER_SPRITE_HEIGHT - 8;
 
           this.updateActiveZone();
         }
@@ -188,45 +218,24 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
         }
 
         private drawGround() {
+          this.add
+            .image(0, 0, MAP_ART_KEY)
+            .setOrigin(0)
+            .setDisplaySize(MAP_WIDTH, MAP_HEIGHT)
+            .setDepth(0);
+
           const graphics = this.add.graphics();
-          graphics.fillStyle(0xf2e0bd, 1);
+          graphics.fillStyle(0x05100a, 0.14);
           graphics.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-          graphics.fillStyle(0x9bb47a, 0.42);
-          graphics.fillRoundedRect(34, 32, MAP_WIDTH - 68, MAP_HEIGHT - 70, 24);
-          graphics.fillStyle(0xe8d3a4, 0.7);
-          graphics.fillRoundedRect(70, 238, 584, 28, 14);
-          graphics.fillRoundedRect(350, 102, 28, 312, 14);
-          graphics.lineStyle(2, 0x78965c, 0.24);
-          for (let y = 52; y <= MAP_HEIGHT - 78; y += 26) {
-            graphics.lineBetween(58, y, MAP_WIDTH - 58, y + 8);
-          }
-          graphics.fillStyle(0x6f8d56, 0.28);
-          for (let x = 58; x <= MAP_WIDTH - 58; x += 46) {
-            for (let y = 58; y <= MAP_HEIGHT - 78; y += 52) {
-              graphics.fillCircle(x, y, 3);
-            }
-          }
         }
 
         private drawZone(zone: InteractionZone) {
           const rectangle = this.add
-            .rectangle(zone.x, zone.y, zone.width, zone.height, zone.fill)
-            .setStrokeStyle(2, zone.stroke)
-            .setAlpha(0.9)
-            .setDepth(5);
+            .rectangle(zone.x, zone.y, zone.width, zone.height)
+            .setFillStyle(zone.fill, 0.025)
+            .setStrokeStyle(1, zone.stroke, 0.16)
+            .setDepth(14);
           this.zoneGraphics.set(zone.id, rectangle);
-          this.drawZoneDecoration(zone);
-
-          this.add
-            .text(zone.x, zone.y + zone.height / 2 - 17, zone.shortLabel, {
-              align: "center",
-              color: "#211d18",
-              fontFamily: "system-ui, sans-serif",
-              fontSize: zone.kind === "ghost" ? "12px" : "13px",
-              fontStyle: "800"
-            })
-            .setOrigin(0.5)
-            .setDepth(12);
         }
 
         private drawZoneDecoration(zone: InteractionZone) {
@@ -236,61 +245,97 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
           const centerY = zone.y - 2;
 
           if (zone.kind === "chateau") {
+            this.add.rectangle(centerX, centerY + 16, zone.width - 44, 78, 0xbca47d).setDepth(8);
+            this.add.rectangle(centerX, centerY + 42, zone.width - 86, 38, 0x8f7658).setDepth(9);
             this.add
-              .triangle(centerX, top + 5, 0, 34, zone.width - 26, 34, (zone.width - 26) / 2, 0, 0x6f2c35)
+              .triangle(centerX, top - 4, 0, 66, zone.width - 20, 66, (zone.width - 20) / 2, 0, 0x26384f)
               .setDepth(8);
-            this.add.rectangle(centerX, centerY + 8, zone.width - 64, 28, 0xf6ead2).setDepth(9);
-            this.add.rectangle(centerX, centerY + 16, 24, 18, 0x5a3728).setDepth(10);
+            this.add.rectangle(centerX, centerY + 36, 34, 44, 0x402a24).setDepth(10);
+            this.add.rectangle(centerX, centerY - 2, 54, 58, 0xc1a474).setDepth(10);
+            this.add.rectangle(centerX, centerY + 3, 36, 42, 0x0f3d83).setDepth(11);
+            this.add.text(centerX, centerY - 4, "CB", {
+              align: "center",
+              color: "#c7a35d",
+              fontFamily: "Georgia, serif",
+              fontSize: "20px",
+              fontStyle: "800"
+            }).setOrigin(0.5).setDepth(12);
+            for (const offset of [-128, -76, 76, 128]) {
+              this.add.rectangle(centerX + offset, centerY + 8, 20, 42, 0x172f45).setDepth(10);
+              this.add.rectangle(centerX + offset, centerY + 8, 12, 30, 0xe1a84e).setDepth(11);
+            }
             return;
           }
 
           if (zone.kind === "plot") {
             const graphics = this.add.graphics().setDepth(9);
-            graphics.lineStyle(3, 0x3d6b39, 0.62);
-            for (let offset = -20; offset <= 20; offset += 13) {
-              graphics.lineBetween(left + 13, centerY + offset, left + zone.width - 13, centerY + offset + 6);
+            graphics.fillStyle(0x29381d, 0.68);
+            graphics.fillRoundedRect(left + 10, top + 16, zone.width - 20, zone.height - 46, 10);
+            graphics.lineStyle(5, 0x6e4f2e, 0.78);
+            for (let x = left + 26; x <= left + zone.width - 18; x += 34) {
+              graphics.lineBetween(x, top + 18, x, top + zone.height - 42);
             }
-            graphics.fillStyle(0x5f2a64, 0.7);
-            for (let x = left + 22; x <= left + zone.width - 22; x += 23) {
-              graphics.fillCircle(x, centerY - 2, 3);
+            graphics.lineStyle(4, 0x86a850, 0.9);
+            for (let y = top + 30; y <= top + zone.height - 52; y += 18) {
+              graphics.lineBetween(left + 18, y, left + zone.width - 18, y + 8);
+            }
+            graphics.fillStyle(0x4f2365, 0.86);
+            for (let x = left + 28; x <= left + zone.width - 28; x += 30) {
+              graphics.fillCircle(x, centerY - 12, 4);
+              graphics.fillCircle(x + 8, centerY + 10, 3);
             }
             return;
           }
 
           if (zone.kind === "cellar") {
-            this.add.rectangle(centerX, centerY + 2, zone.width - 34, 28, 0x5b3327).setDepth(8);
-            this.add.rectangle(centerX, centerY - 9, zone.width - 52, 8, 0x2e1b18).setDepth(9);
-            this.add.rectangle(centerX - 24, centerY + 6, 16, 18, 0x8c5a3b).setDepth(9);
-            this.add.rectangle(centerX + 24, centerY + 6, 16, 18, 0x8c5a3b).setDepth(9);
+            this.add.circle(centerX - 18, centerY - 4, 54, 0x84715d).setDepth(8);
+            this.add.circle(centerX - 18, centerY - 4, 38, 0x1f1715).setDepth(9);
+            this.add.rectangle(centerX + 28, centerY + 16, 46, 34, 0x6f4028).setDepth(9);
+            this.add.rectangle(centerX + 28, centerY + 15, 54, 8, 0x3a2219).setDepth(10);
             return;
           }
 
           if (zone.kind === "production") {
-            this.add.ellipse(centerX - 30, centerY + 4, 32, 38, 0xd8d1bd).setDepth(8);
-            this.add.rectangle(centerX - 30, centerY + 4, 32, 28, 0xb9b19f).setDepth(9);
-            this.add.circle(centerX + 28, centerY + 5, 20, 0x7f4a33).setDepth(8);
-            this.add.rectangle(centerX + 28, centerY + 5, 38, 9, 0x5b2f25).setDepth(9);
+            this.add.rectangle(centerX - 30, centerY + 12, 52, 58, 0x7f4a33).setDepth(8);
+            this.add.ellipse(centerX - 30, centerY - 18, 52, 26, 0xb97b3c).setDepth(9);
+            this.add.ellipse(centerX - 30, centerY + 40, 52, 20, 0x4e2b1d).setDepth(9);
+            this.add.ellipse(centerX + 38, centerY + 9, 44, 62, 0xc77b36).setDepth(8);
+            this.add.rectangle(centerX + 38, centerY + 9, 44, 36, 0x8b4c2a).setDepth(9);
+            this.add.rectangle(centerX + 38, centerY - 23, 18, 22, 0x4d3328).setDepth(10);
             return;
           }
 
           if (zone.kind === "shop" || zone.kind === "market") {
             const graphics = this.add.graphics().setDepth(9);
-            graphics.fillStyle(zone.kind === "shop" ? 0x7b2442 : 0x2f5f46, 0.95);
-            graphics.fillRect(left + 16, top + 11, zone.width - 32, 14);
+            graphics.fillStyle(0x5d3d2f, 1);
+            graphics.fillRoundedRect(left + 24, top + 38, zone.width - 48, 50, 8);
+            graphics.fillStyle(zone.kind === "shop" ? 0x1f4a8a : 0x9c4331, 0.95);
+            graphics.fillRect(left + 18, top + 22, zone.width - 36, 20);
             graphics.fillStyle(0xfff3d5, 0.9);
-            for (let x = left + 18; x < left + zone.width - 22; x += 24) {
-              graphics.fillRect(x, top + 11, 12, 14);
+            for (let x = left + 18; x < left + zone.width - 22; x += 28) {
+              graphics.fillRect(x, top + 22, 14, 20);
             }
-            graphics.fillStyle(0x4a3328, 0.7);
-            graphics.fillRect(left + 24, centerY + 4, zone.width - 48, 16);
+            graphics.fillStyle(0xd8b86a, 0.94);
+            graphics.fillRoundedRect(left + 42, top + 10, zone.width - 84, 24, 6);
+            graphics.fillStyle(0x231913, 0.88);
+            graphics.fillRect(left + 44, top + 56, zone.width - 88, 22);
             return;
           }
 
           if (zone.kind === "ghost") {
-            this.add.ellipse(centerX, centerY, 42, 54, 0xf7f1ff, 0.88).setDepth(8);
+            this.add.circle(centerX, centerY, 48, 0x5ac8ff, 0.22).setDepth(7);
+            this.add.ellipse(centerX, centerY, 42, 54, 0xc7f2ff, 0.75).setDepth(8);
             this.add.circle(centerX - 9, centerY - 7, 3, 0x4a3f64).setDepth(10);
             this.add.circle(centerX + 9, centerY - 7, 3, 0x4a3f64).setDepth(10);
             this.add.rectangle(centerX, centerY + 12, 28, 4, 0x7b6fa0).setDepth(10);
+            this.add.rectangle(centerX + 68, centerY - 22, 112, 30, 0x071225, 0.9).setDepth(11);
+            this.add.text(centerX + 68, centerY - 29, "Ghost Sommelier", {
+              align: "center",
+              color: "#70b8ff",
+              fontFamily: "system-ui, sans-serif",
+              fontSize: "12px",
+              fontStyle: "800"
+            }).setOrigin(0.5).setDepth(12);
           }
         }
 
@@ -307,8 +352,9 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
             );
             this.zoneGraphics
               .get(this.activeZoneId)
-              ?.setStrokeStyle(2, previousZone?.stroke ?? 0x211d18)
-              .setAlpha(0.9);
+              ?.setFillStyle(previousZone?.fill ?? 0x211d18, 0.025)
+              ?.setStrokeStyle(1, previousZone?.stroke ?? 0x211d18, 0.16)
+              .setAlpha(1);
           }
 
           this.activeZoneId = nextZoneId;
@@ -316,13 +362,16 @@ export function PhaserMap({ onInteract }: PhaserMapProps) {
           if (activeZone) {
             this.zoneGraphics
               .get(activeZone.id)
-              ?.setStrokeStyle(5, 0xc7a35d)
+              ?.setFillStyle(0xc7a35d, 0.08)
+              ?.setStrokeStyle(4, 0xc7a35d, 0.72)
               .setAlpha(1);
             this.promptText.setText(activeZone.prompt);
+            this.promptText.setVisible(true);
             return;
           }
 
-          this.promptText.setText("Walk into a zone");
+          this.promptText.setText("");
+          this.promptText.setVisible(false);
         }
 
         private interactWithActiveZone() {

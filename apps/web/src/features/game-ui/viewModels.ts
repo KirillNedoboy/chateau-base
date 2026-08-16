@@ -14,6 +14,13 @@ export type ShopItemViewModel = {
   actionLabel: string;
 };
 
+export type CoachOverlayView = {
+  promptLabel: string;
+  targetZone: "shop" | "plot_1" | "production";
+  sommelierName: "Ghost Sommelier";
+  sommelierLine: string;
+};
+
 export const SHOP_ITEMS: readonly ShopItemViewModel[] = [
   {
     key: "vine",
@@ -118,4 +125,36 @@ export function getTutorialLine(step: TutorialStep | null): string {
     return "Follow the vineyard. It usually knows before you do.";
   }
   return TUTORIAL_LINES[step];
+}
+
+export function getCoachOverlayView(step: TutorialStep | null): CoachOverlayView | null {
+  if (!step || step === "wine_revealed" || step === "wallet_prompt_seen") {
+    return null;
+  }
+
+  const targetByStep: Partial<Record<TutorialStep, CoachOverlayView["targetZone"]>> = {
+    session_started: "shop",
+    shop_opened: "shop",
+    vine_bought: "plot_1",
+    vine_planted: "plot_1",
+    vine_harvested: "production",
+    winery_opened: "production",
+    production_started: "production"
+  };
+  const targetZone = targetByStep[step];
+  if (!targetZone) {
+    return null;
+  }
+
+  return {
+    promptLabel:
+      targetZone === "shop"
+        ? "Tap to buy vine"
+        : targetZone === "plot_1"
+          ? "Tap the vineyard"
+          : "Tap to craft wine",
+    targetZone,
+    sommelierName: "Ghost Sommelier",
+    sommelierLine: getTutorialLine(step)
+  };
 }

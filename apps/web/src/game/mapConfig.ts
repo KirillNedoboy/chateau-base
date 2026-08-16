@@ -1,10 +1,14 @@
 export const MAP_WIDTH = 720;
-export const MAP_HEIGHT = 480;
-export const MAP_PROMPT_Y = MAP_HEIGHT - 220;
+export const MAP_HEIGHT = 1040;
+export const MAP_PROMPT_Y = 400;
+export const MAP_ART_ASSET_PATH = "/game/art/chateau-map-painterly.png";
+export const PLAYER_SPRITE_ASSET_PATH = "/game/art/player-winemaker.png";
+export const BOTTOM_NAV_ICON_ASSET_PATH = "/game/art/bottom-nav-icons.png";
+export const QUICK_ACTION_ICON_ASSET_PATH = "/game/art/quick-action-icons.png";
 
 export const PLAYER_START = {
   x: 360,
-  y: 250
+  y: 385
 } as const;
 
 export const REQUIRED_INTERACTION_ZONE_IDS = [
@@ -53,13 +57,13 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
   {
     id: "chateau",
     label: "Chateau",
-    shortLabel: "CHATEAU",
+    shortLabel: "WINERY",
     kind: "chateau",
     prompt: "Press E or tap Interact at the Chateau",
     x: 360,
-    y: 72,
-    width: 250,
-    height: 70,
+    y: 132,
+    width: 370,
+    height: 150,
     fill: 0xd9c6a3,
     stroke: 0x7b5d36
   },
@@ -69,23 +73,23 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "CELLAR",
     kind: "cellar",
     prompt: "Press E or tap Interact at the Cellar",
-    x: 245,
-    y: 170,
-    width: 130,
-    height: 58,
+    x: 138,
+    y: 292,
+    width: 152,
+    height: 116,
     fill: 0x9c6b4a,
     stroke: 0x5f3928
   },
   {
     id: "production",
     label: "Production",
-    shortLabel: "WINERY",
+    shortLabel: "PRODUCTION",
     kind: "production",
     prompt: "Press E or tap Interact to craft wine",
-    x: 475,
-    y: 170,
-    width: 150,
-    height: 58,
+    x: 138,
+    y: 452,
+    width: 168,
+    height: 118,
     fill: 0xaab7a0,
     stroke: 0x566a4f
   },
@@ -95,10 +99,10 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "PLOT 1",
     kind: "plot",
     prompt: "Press E or tap Interact at Plot 1",
-    x: 150,
-    y: 278,
-    width: 115,
-    height: 66,
+    x: 160,
+    y: 628,
+    width: 162,
+    height: 118,
     fill: 0x7f9f63,
     stroke: 0x4c683d
   },
@@ -108,10 +112,10 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "PLOT 2",
     kind: "plot",
     prompt: "Press E or tap Interact at Plot 2",
-    x: 300,
-    y: 278,
-    width: 115,
-    height: 66,
+    x: 360,
+    y: 628,
+    width: 162,
+    height: 118,
     fill: 0x7f9f63,
     stroke: 0x4c683d
   },
@@ -121,10 +125,10 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "PLOT 3",
     kind: "plot",
     prompt: "Press E or tap Interact at Plot 3",
-    x: 450,
-    y: 278,
-    width: 115,
-    height: 66,
+    x: 560,
+    y: 628,
+    width: 162,
+    height: 118,
     fill: 0x7f9f63,
     stroke: 0x4c683d
   },
@@ -134,10 +138,10 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "SHOP",
     kind: "shop",
     prompt: "Press E or tap Interact at the Shop",
-    x: 245,
-    y: 390,
-    width: 130,
-    height: 58,
+    x: 212,
+    y: 838,
+    width: 178,
+    height: 120,
     fill: 0xc7a35d,
     stroke: 0x735a28
   },
@@ -147,10 +151,10 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "MARKET",
     kind: "market",
     prompt: "Press E or tap Interact at the Market",
-    x: 475,
-    y: 390,
-    width: 150,
-    height: 58,
+    x: 508,
+    y: 838,
+    width: 188,
+    height: 120,
     fill: 0xb97861,
     stroke: 0x754337
   },
@@ -160,8 +164,8 @@ export const INTERACTION_ZONES: readonly InteractionZone[] = [
     shortLabel: "GHOST",
     kind: "ghost",
     prompt: "Press E or tap Interact near the Ghost Sommelier",
-    x: 610,
-    y: 252,
+    x: 526,
+    y: 372,
     width: 92,
     height: 92,
     fill: 0xded9ef,
